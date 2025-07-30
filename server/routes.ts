@@ -475,7 +475,7 @@ async function generateCardImage(card: any, filename: string): Promise<string> {
       <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <style>
-            .thai-text { font-family: 'Sarabun', 'Noto Sans Thai', Arial, sans-serif; }
+            .thai-text { font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; }
             .main-text { font-size: 64px; font-weight: bold; fill: #1f2937; text-anchor: middle; }
             .pronunciation { font-size: 24px; font-style: italic; fill: #6b7280; text-anchor: middle; }
             .chinese-text { font-size: 36px; font-weight: bold; fill: #1f2937; text-anchor: middle; }

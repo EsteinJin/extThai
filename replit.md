@@ -306,6 +306,17 @@ Changelog:
   - Created timer icons for auto-page toggle button with visual feedback
   - Ensured audio playback consistency after manual or automatic page turns
 
+- July 30, 2025. Mobile UX improvements and auto-selection:
+  - Optimized flashcard size for mobile screens (reduced from 70vh to 50vh)
+  - Improved card responsiveness with better padding and spacing
+  - Maintained prominent example text size while reducing other elements
+  - Added auto-selection of newly uploaded cards in file management
+  - Enhanced mobile-first design with compact button layouts
+  - Fixed card play button functionality and font consistency
+  - Added "选择上传卡片" button for easy re-selection of uploaded cards
+  - Fixed auto-clear selection after operations (download, generate, delete)
+  - Improved file management workflow with better selection control
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

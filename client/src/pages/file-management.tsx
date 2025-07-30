@@ -41,6 +41,21 @@ export default function FileManagementPage() {
     enabled: isAuthenticated, // Only fetch when authenticated
   });
 
+  // Store uploaded card IDs for later selection
+  const [uploadedCardIds, setUploadedCardIds] = useState<Set<number>>(new Set());
+
+  // Auto-select all cards when cards data changes (after upload)
+  useEffect(() => {
+    if (cards.length > 0 && uploadSuccess) {
+      // Store the IDs of newly uploaded cards
+      const newCardIds = new Set(cards.map(card => card.id));
+      setUploadedCardIds(newCardIds);
+      setSelectedCards(newCardIds);
+      // Reset upload success flag after auto-selection
+      setTimeout(() => setUploadSuccess(false), 1000);
+    }
+  }, [cards, uploadSuccess]);
+
 
 
   // Check authentication on component mount
@@ -92,6 +107,9 @@ export default function FileManagementPage() {
         title: "下载完成",
         description: `已下载 ${cardsToDownload.length} 张卡片和语音文件`,
       });
+      
+      // Clear selection after successful download
+      setSelectedCards(new Set());
     } catch (error) {
       console.error("Batch download failed:", error);
       toast({
@@ -121,6 +139,12 @@ export default function FileManagementPage() {
     } else {
       setSelectedCards(new Set(filteredCards.map(card => card.id)));
     }
+  };
+
+  const handleSelectUploaded = () => {
+    // Select only the uploaded cards that are currently visible
+    const uploadedAndVisible = cards.filter(card => uploadedCardIds.has(card.id));
+    setSelectedCards(new Set(uploadedAndVisible.map(card => card.id)));
   };
 
   const handleDeleteCard = async (cardId: number) => {
@@ -224,6 +248,9 @@ export default function FileManagementPage() {
         title: "上传成功",
         description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}`,
       });
+
+      // Store uploaded card count for later reference
+      const uploadedCount = result.count;
     } catch (error) {
       console.error("Upload failed:", error);
       toast({
@@ -590,15 +617,27 @@ export default function FileManagementPage() {
                   </Select>
                 </div>
                 {cards.length > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="select-all"
-                      checked={selectedCards.size === filteredCards.length && filteredCards.length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                    <label htmlFor="select-all" className="text-sm text-gray-600 cursor-pointer">
-                      全选 ({selectedCards.size}/{filteredCards.length})
-                    </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all"
+                        checked={selectedCards.size === filteredCards.length && filteredCards.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <label htmlFor="select-all" className="text-sm text-gray-600 cursor-pointer">
+                        全选 ({selectedCards.size}/{filteredCards.length})
+                      </label>
+                    </div>
+                    {uploadedCardIds.size > 0 && (
+                      <Button
+                        onClick={handleSelectUploaded}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8"
+                      >
+                        选择上传卡片 ({uploadedCardIds.size})
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -687,12 +726,12 @@ export default function FileManagementPage() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-4">
-                        <span className="text-2xl font-thai">{card.thai}</span>
+                        <span className="text-2xl" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.thai}</span>
                         <span className="text-gray-600">{card.chinese}</span>
                         <span className="text-sm text-gray-500">({card.pronunciation})</span>
                       </div>
                       {card.example && (
-                        <p className="text-sm text-gray-500 mt-1">{card.example}</p>
+                        <p className="text-sm text-gray-500 mt-1" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.example}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">

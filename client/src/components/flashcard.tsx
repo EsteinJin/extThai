@@ -2,7 +2,7 @@ import { Card } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Volume2, Play, BookOpen } from "lucide-react";
 import { getCardColor, formatCardNumber } from "@/lib/utils";
-import { audioService } from "@/lib/audio";
+import { AudioService } from "@/lib/audio";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -27,31 +27,15 @@ export function FlashCard({ card, index }: FlashCardProps) {
 
   const handlePlayAudio = async (text: string, type: "word" | "example") => {
     const setLoading = type === "word" ? setIsPlayingWord : setIsPlayingExample;
+    const audioService = AudioService.getInstance();
     
     try {
       setLoading(true);
       
-      let audioUrl: string | null = null;
+      // Use AudioService playAudio method which handles TTS and external audio
+      console.log(`🎯 Playing ${type} audio: ${text}`);
+      await audioService.playAudio(text, "th-TH");
       
-      // Check if card has generated audio files
-      if (type === "word" && card.word_audio) {
-        audioUrl = `/api/audio/generated/${card.word_audio.replace('generated/audio/', '')}`;
-        console.log(`🎯 Using BACKEND generated word audio: ${audioUrl}`);
-      } else if (type === "example" && card.example_audio) {
-        audioUrl = `/api/audio/generated/${card.example_audio.replace('generated/audio/', '')}`;
-        console.log(`🎯 Using BACKEND generated example audio: ${audioUrl}`);
-      } else {
-        // Fallback to external audio generation
-        console.log(`🌐 Using EXTERNAL audio service for: ${text}`);
-        audioUrl = await audioService.generateAudio(text, "th-TH");
-      }
-      
-      if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        await audio.play();
-      } else {
-        throw new Error("Could not generate audio");
-      }
     } catch (error) {
       console.error("Audio playback failed:", error);
       toast({
@@ -66,44 +50,44 @@ export function FlashCard({ card, index }: FlashCardProps) {
 
   return (
     <div 
-      className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden min-h-[70vh] flex flex-col card-transition cursor-pointer transform hover:scale-[1.01]"
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[50vh] max-h-[85vh] flex flex-col card-transition cursor-pointer transform hover:scale-[1.02]"
       onClick={() => setCardFlipped(!cardFlipped)}
     >
-      <div className="p-6 md:p-8 lg:p-12 flex-1 flex flex-col justify-center">        
-        <div className="space-y-8 md:space-y-12">
-          {/* Thai Word - Larger for mobile */}
+      <div className="p-4 md:p-6 lg:p-8 flex-1 flex flex-col justify-center">        
+        <div className="space-y-4 md:space-y-6">
+          {/* Thai Word - Optimized for mobile */}
           <div className="text-center">
-            <div className="text-5xl md:text-6xl lg:text-7xl font-bold thai-text text-gray-900 dark:text-white mb-4 leading-tight">
+            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 leading-tight" style={{fontFamily: 'sans-serif'}}>
               {card.thai}
             </div>
-            <div className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 italic font-medium">
+            <div className="text-lg md:text-xl text-gray-500 dark:text-gray-400 italic font-medium">
               {card.pronunciation}
             </div>
           </div>
           
           {/* Divider */}
-          <div className="border-t border-gray-200 dark:border-gray-600 w-16 mx-auto"></div>
+          <div className="border-t border-gray-200 dark:border-gray-600 w-12 mx-auto"></div>
           
           {/* Chinese Translation */}
           <div className={`text-center transition-opacity duration-300 ${cardFlipped ? 'opacity-100' : 'opacity-70'}`}>
-            <div className="text-3xl md:text-4xl lg:text-5xl font-semibold text-gray-800 dark:text-gray-200">
+            <div className="text-2xl md:text-3xl lg:text-4xl font-semibold text-gray-800 dark:text-gray-200">
               {card.chinese}
             </div>
             {!cardFlipped && (
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">点击卡片查看详情</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">点击卡片查看详情</p>
             )}
           </div>
           
-          {/* Example Section - Enhanced with animation */}
+          {/* Example Section - Keep text size prominent */}
           {card.example && (
-            <div className={`bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl p-6 md:p-8 border-l-4 border-yellow-500 shadow-lg transition-all duration-500 ${cardFlipped ? 'opacity-100 transform translate-y-0' : 'opacity-60 transform translate-y-2'}`}>
-              <h4 className="text-lg md:text-xl font-bold text-yellow-800 dark:text-yellow-200 mb-4 flex items-center">
-                <BookOpen className="w-5 h-5 mr-2" />
+            <div className={`bg-yellow-100 dark:bg-yellow-900/30 rounded-xl p-4 md:p-6 border-l-4 border-yellow-500 shadow-md transition-all duration-500 ${cardFlipped ? 'opacity-100 transform translate-y-0' : 'opacity-60 transform translate-y-2'}`}>
+              <h4 className="text-base md:text-lg font-bold text-yellow-800 dark:text-yellow-200 mb-3 flex items-center">
+                <BookOpen className="w-4 h-4 mr-2" />
                 例句 Example
               </h4>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xl md:text-2xl lg:text-3xl thai-text text-yellow-900 dark:text-yellow-100 font-semibold leading-relaxed flex-1">
+                  <p className="text-xl md:text-2xl lg:text-3xl text-yellow-900 dark:text-yellow-100 font-semibold leading-relaxed flex-1" style={{fontFamily: 'sans-serif'}}>
                     {card.example}
                   </p>
                   <Button
@@ -113,24 +97,50 @@ export function FlashCard({ card, index }: FlashCardProps) {
                     }}
                     variant="ghost"
                     size="sm"
-                    className="ml-4 text-yellow-600 hover:text-yellow-800 dark:text-yellow-300 dark:hover:text-yellow-100"
+                    className="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-300 dark:hover:text-yellow-100"
                     disabled={isPlayingExample}
                   >
                     {isPlayingExample ? (
                       <div className="animate-pulse">
-                        <Volume2 className="w-5 h-5" />
+                        <Volume2 className="w-4 h-4" />
                       </div>
                     ) : (
-                      <Play className="w-5 h-5" />
+                      <Play className="w-4 h-4" />
                     )}
                   </Button>
                 </div>
-                <p className="text-lg md:text-xl text-yellow-800 dark:text-yellow-200 leading-relaxed">
+                <p className="text-base md:text-lg text-yellow-800 dark:text-yellow-200 leading-relaxed">
                   {card.example_translation}
                 </p>
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Play button for Thai word - Compact mobile design */}
+        <div className="flex justify-center mt-4 md:mt-6">
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayAudio(card.thai, "word");
+            }}
+            variant="outline"
+            size="default"
+            className="px-6 py-2 text-blue-600 hover:text-blue-800 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-200 dark:border-blue-800 dark:hover:bg-blue-900/20 shadow-sm hover:shadow-md transition-all duration-300"
+            disabled={isPlayingWord}
+          >
+            {isPlayingWord ? (
+              <div className="animate-pulse flex items-center">
+                <Volume2 className="w-5 h-5 mr-2" />
+                <span className="text-base font-medium">播放中...</span>
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <Play className="w-5 h-5 mr-2" />
+                <span className="text-base font-medium">播放发音</span>
+              </div>
+            )}
+          </Button>
         </div>
       </div>
     </div>

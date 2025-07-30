@@ -103,7 +103,7 @@ export class DownloadService {
     tempDiv.style.backgroundColor = "white";
     tempDiv.style.borderRadius = "16px";
     tempDiv.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.1)";
-    tempDiv.style.fontFamily = "system-ui, 'Noto Sans Thai', 'Arial Unicode MS', sans-serif";
+    tempDiv.style.fontFamily = "system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif";
 
     tempDiv.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
