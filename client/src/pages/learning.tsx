@@ -2,12 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@shared/schema";
 import { FlashCard } from "@/components/flashcard";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Play, Pause, SkipBack, SkipForward, Moon, Sun, ArrowLeft, CheckCircle, Circle } from "lucide-react";
+import { RefreshCw, Play, Pause, SkipBack, SkipForward, Moon, Sun, ArrowLeft, CheckCircle, Circle, Settings, Timer, TimerOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "wouter";
 import { AudioService } from "@/lib/audio";
 import { progressService } from "@/lib/progress";
+import { settingsService } from "@/lib/settings";
 
 export default function LearningPage() {
   const { toast } = useToast();
@@ -20,6 +21,10 @@ export default function LearningPage() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [completedCards, setCompletedCards] = useState<number[]>([]);
+  const [showHelp, setShowHelp] = useState(false);
+  const [settings, setSettings] = useState(settingsService.getSettings());
+  const [autoPageTurn, setAutoPageTurn] = useState(false);
+  const [autoPageInterval, setAutoPageInterval] = useState<NodeJS.Timeout | null>(null);
 
   const { data: cards = [], isLoading, refetch } = useQuery<Card[]>({
     queryKey: ["/api/cards", level, "random"],
@@ -96,7 +101,7 @@ export default function LearningPage() {
 
 
 
-  // Auto-play audio when card changes (with improved audio management)
+  // Auto-play audio when card changes - always play word and example after page turn
   useEffect(() => {
     if (cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length && cards[currentIndex]) {
       console.log(`🎵 Auto-playing audio for card ${currentIndex + 1}/${cards.length}: ${cards[currentIndex].thai}`);
@@ -113,7 +118,7 @@ export default function LearningPage() {
           await audioService.playAudio(card.thai, "th-TH");
           
           // Small delay between word and example for better listening experience
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           // Play example audio if exists
           if (card.example && card.example.trim()) {
@@ -126,9 +131,33 @@ export default function LearningPage() {
       };
       
       // Small delay to allow UI to update before starting audio
-      setTimeout(playSequentialAudio, 200);
+      setTimeout(playSequentialAudio, 300);
     }
   }, [currentIndex, cards, audioService]);
+
+  // Auto page turn functionality
+  useEffect(() => {
+    if (autoPageTurn && cards.length > 0) {
+      const interval = setInterval(() => {
+        goToNext();
+      }, 8000); // Turn page every 8 seconds
+      
+      setAutoPageInterval(interval);
+      return () => clearInterval(interval);
+    } else if (autoPageInterval) {
+      clearInterval(autoPageInterval);
+      setAutoPageInterval(null);
+    }
+  }, [autoPageTurn, goToNext, cards.length]);
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autoPageInterval) {
+        clearInterval(autoPageInterval);
+      }
+    };
+  }, [autoPageInterval]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -155,6 +184,14 @@ export default function LearningPage() {
         case 'KeyC':
           event.preventDefault();
           markCurrentCardCompleted();
+          break;
+        case 'KeyT':
+          event.preventDefault();
+          setAutoPageTurn(!autoPageTurn);
+          toast({
+            title: autoPageTurn ? "自动翻页已关闭" : "自动翻页已开启",
+            description: autoPageTurn ? "停止自动翻页" : "每8秒自动翻到下一张卡片",
+          });
           break;
       }
     };
@@ -319,23 +356,45 @@ export default function LearningPage() {
                 上一张
               </Button>
 
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  // Refetch new random cards
-                  refetch();
-                  setCurrentIndex(0);
-                  setCompletedCards([]);
-                  toast({
-                    title: "已刷新卡片",
-                    description: "获取新的随机10张卡片",
-                  });
-                }}
-                className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                换一组
-              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  variant={autoPageTurn ? "default" : "ghost"}
+                  onClick={() => setAutoPageTurn(!autoPageTurn)}
+                  className={`${autoPageTurn 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                  title="自动翻页 (8秒间隔)"
+                >
+                  {autoPageTurn ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4" />}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowHelp(!showHelp)}
+                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    // Refetch new random cards
+                    refetch();
+                    setCurrentIndex(0);
+                    setCompletedCards([]);
+                    toast({
+                      title: "已刷新卡片",
+                      description: "获取新的随机10张卡片",
+                    });
+                  }}
+                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  换一组
+                </Button>
+              </div>
 
               <Button
                 variant="ghost"
@@ -347,8 +406,65 @@ export default function LearningPage() {
                 <SkipForward className="w-4 h-4 ml-2" />
               </Button>
             </div>
-            <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} text-center`}>
-              滑动或按空格键翻页 • C键标记完成 • D键切换主题 • 随机卡片不重复
+            <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} text-center space-y-1`}>
+              <div>滑动或按空格键翻页 • C键标记完成 • D键切换主题</div>
+              <div>
+                {autoPageTurn ? (
+                  <span className="text-blue-500 font-medium">自动翻页开启 (8秒间隔)</span>
+                ) : (
+                  "T键自动翻页 • R键换一组 • H键显示帮助"
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Help Modal */}
+        {showHelp && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHelp(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4 dark:text-white">键盘快捷键</h3>
+              <div className="space-y-2 text-sm dark:text-gray-300">
+                <div className="flex justify-between">
+                  <span>空格键 / →</span>
+                  <span>下一张卡片</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>←</span>
+                  <span>上一张卡片</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>C</span>
+                  <span>标记完成</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>D</span>
+                  <span>切换夜间模式</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>R</span>
+                  <span>刷新卡片组</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>H</span>
+                  <span>显示/隐藏帮助</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>T</span>
+                  <span>自动翻页开关</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>ESC</span>
+                  <span>关闭帮助</span>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setShowHelp(false)} 
+                className="w-full mt-4"
+                variant="outline"
+              >
+                关闭
+              </Button>
             </div>
           </div>
         )}

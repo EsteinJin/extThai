@@ -1,6 +1,6 @@
 import { Card } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Volume2, Play } from "lucide-react";
+import { Volume2, Play, BookOpen } from "lucide-react";
 import { getCardColor, formatCardNumber } from "@/lib/utils";
 import { audioService } from "@/lib/audio";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ export function FlashCard({ card, index }: FlashCardProps) {
   const { toast } = useToast();
   const [isPlayingWord, setIsPlayingWord] = useState(false);
   const [isPlayingExample, setIsPlayingExample] = useState(false);
+  const [cardFlipped, setCardFlipped] = useState(false);
 
   if (!card) {
     return (
@@ -64,7 +65,10 @@ export function FlashCard({ card, index }: FlashCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden min-h-[70vh] flex flex-col card-transition">
+    <div 
+      className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden min-h-[70vh] flex flex-col card-transition cursor-pointer transform hover:scale-[1.01]"
+      onClick={() => setCardFlipped(!cardFlipped)}
+    >
       <div className="p-6 md:p-8 lg:p-12 flex-1 flex flex-col justify-center">        
         <div className="space-y-8 md:space-y-12">
           {/* Thai Word - Larger for mobile */}
@@ -81,22 +85,46 @@ export function FlashCard({ card, index }: FlashCardProps) {
           <div className="border-t border-gray-200 dark:border-gray-600 w-16 mx-auto"></div>
           
           {/* Chinese Translation */}
-          <div className="text-center">
+          <div className={`text-center transition-opacity duration-300 ${cardFlipped ? 'opacity-100' : 'opacity-70'}`}>
             <div className="text-3xl md:text-4xl lg:text-5xl font-semibold text-gray-800 dark:text-gray-200">
               {card.chinese}
             </div>
+            {!cardFlipped && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">点击卡片查看详情</p>
+            )}
           </div>
           
-          {/* Example Section - Yellow background like downloaded cards */}
+          {/* Example Section - Enhanced with animation */}
           {card.example && (
-            <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl p-6 md:p-8 border-l-4 border-yellow-500 shadow-lg">
-              <h4 className="text-lg md:text-xl font-bold text-yellow-800 dark:text-yellow-200 mb-4">
+            <div className={`bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl p-6 md:p-8 border-l-4 border-yellow-500 shadow-lg transition-all duration-500 ${cardFlipped ? 'opacity-100 transform translate-y-0' : 'opacity-60 transform translate-y-2'}`}>
+              <h4 className="text-lg md:text-xl font-bold text-yellow-800 dark:text-yellow-200 mb-4 flex items-center">
+                <BookOpen className="w-5 h-5 mr-2" />
                 例句 Example
               </h4>
               <div className="space-y-4">
-                <p className="text-xl md:text-2xl lg:text-3xl thai-text text-yellow-900 dark:text-yellow-100 font-semibold leading-relaxed">
-                  {card.example}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xl md:text-2xl lg:text-3xl thai-text text-yellow-900 dark:text-yellow-100 font-semibold leading-relaxed flex-1">
+                    {card.example}
+                  </p>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePlayAudio(card.example, "example");
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="ml-4 text-yellow-600 hover:text-yellow-800 dark:text-yellow-300 dark:hover:text-yellow-100"
+                    disabled={isPlayingExample}
+                  >
+                    {isPlayingExample ? (
+                      <div className="animate-pulse">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                    ) : (
+                      <Play className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
                 <p className="text-lg md:text-xl text-yellow-800 dark:text-yellow-200 leading-relaxed">
                   {card.example_translation}
                 </p>

@@ -285,6 +285,27 @@ Changelog:
   - Enhanced server-side API to support random sampling with configurable limits
   - Updated learning progress tracking to work with random card sets
 
+- July 30, 2025. Comprehensive UX and performance optimization:
+  - Enhanced flashcard component with flip animations and interactive click effects
+  - Added comprehensive settings system for learning preferences (audio speed, volume, gestures)
+  - Implemented extended keyboard shortcuts (R for refresh, H for help, ESC for close, T for auto-page)
+  - Created interactive help modal with complete shortcut reference
+  - Added audio performance monitoring and caching system for better responsiveness
+  - Improved HTML audio caching to reduce loading times for repeated content
+  - Enhanced mobile touch feedback with visual hover effects
+  - Implemented learning statistics service for tracking progress and streaks
+  - Added playback success rate monitoring for debugging audio issues
+  - Created visual indicators for card interaction states (click hints, completion status)
+
+- July 30, 2025. Auto-play and page turn enhancements:
+  - Added automatic page turning functionality with 8-second intervals
+  - Implemented T key shortcut for toggling auto-page feature
+  - Enhanced page turn behavior to automatically play word and example audio
+  - Improved audio stopping mechanism when changing cards (prevents overlap)
+  - Added visual indicators for auto-page status in navigation tips
+  - Created timer icons for auto-page toggle button with visual feedback
+  - Ensured audio playback consistency after manual or automatic page turns
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
