@@ -1,0 +1,20 @@
+{
+  "cards": [
+    {
+      "id": 1,
+      "thai": "สวัสดี",
+      "chinese": "你好",
+      "pronunciation": "sà-wàt-dii",
+      "example": "สวัสดีครับ ผมชื่อจอห์น",
+      "example_translation": "你好，我叫约翰"
+    },
+    {
+      "id": 2,
+      "thai": "ขอบคุณ",
+      "chinese": "谢谢",
+      "pronunciation": "kɔ̀ɔp-kun",
+      "example": "ขอบคุณมากครับ",
+      "example_translation": "非常感谢"
+    }
+  ]
+}

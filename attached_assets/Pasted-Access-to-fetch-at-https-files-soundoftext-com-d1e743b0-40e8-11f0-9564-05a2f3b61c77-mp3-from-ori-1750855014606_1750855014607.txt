@@ -1,0 +1,186 @@
+Access to fetch at 'https://files.soundoftext.com/d1e743b0-40e8-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+files.soundoftext.com/d1e743b0-40e8-11f0-9564-05a2f3b61c77.mp3:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this error
+download.ts:76 Failed to generate word audio for card 2: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:63:41)
+    at async handleBatchDownload (learning.tsx:34:7)
+downloadBatch @ download.ts:76Understand this error
+download.ts:83 Generating audio for example: "ขอบคุณมากครับ"
+download.ts:85 Example audio URL: https://files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3
+2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev/:1 Access to fetch at 'https://files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this error
+download.ts:100 Failed to generate example audio for card 2: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:87:41)
+    at async handleBatchDownload (learning.tsx:34:7)
+downloadBatch @ download.ts:100Understand this error
+download.ts:59 Generating audio for word: "สวัสดี"
+download.ts:61 Word audio URL: https://files.soundoftext.com/f4729ae0-50cb-11f0-9564-05a2f3b61c77.mp3
+2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev/:1 Access to fetch at 'https://files.soundoftext.com/f4729ae0-50cb-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+download.ts:63 
+            
+            
+           GET https://files.soundoftext.com/f4729ae0-50cb-11f0-9564-05a2f3b61c77.mp3 net::ERR_FAILED
+downloadBatch @ download.ts:63
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:76 Failed to generate word audio for card 1: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:63:41)
+    at async handleBatchDownload (learning.tsx:34:7)
+downloadBatch @ download.ts:76
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:83 Generating audio for example: "สวัสดีครับ ผมชื่อจอห์น"
+download.ts:85 Example audio URL: https://files.soundoftext.com/65545650-5143-11f0-9564-05a2f3b61c77.mp3
+2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev/:1 Access to fetch at 'https://files.soundoftext.com/65545650-5143-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+download.ts:87 
+            
+            
+           GET https://files.soundoftext.com/65545650-5143-11f0-9564-05a2f3b61c77.mp3 net::ERR_FAILED
+downloadBatch @ download.ts:87
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:100 Failed to generate example audio for card 1: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:87:41)
+    at async handleBatchDownload (learning.tsx:34:7)
+downloadBatch @ download.ts:100
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:59 Generating audio for word: "ขอบคุณ"
+download.ts:61 Word audio URL: https://files.soundoftext.com/d1e743b0-40e8-11f0-9564-05a2f3b61c77.mp3
+2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev/:1 Access to fetch at 'https://files.soundoftext.com/d1e743b0-40e8-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+download.ts:63 
+            
+            
+           GET https://files.soundoftext.com/d1e743b0-40e8-11f0-9564-05a2f3b61c77.mp3 net::ERR_FAILED 200 (OK)
+downloadBatch @ download.ts:63
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:76 Failed to generate word audio for card 2: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:63:41)
+    at async handleBatchDownload (learning.tsx:34:7)
+downloadBatch @ download.ts:76
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:83 Generating audio for example: "ขอบคุณมากครับ"
+download.ts:85 Example audio URL: https://files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3
+2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev/:1 Access to fetch at 'https://files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3' from origin 'https://2375a96e-45e6-4dff-b7a8-1faa6827f6c6-00-2wgaaxfwe4wu.worf.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+download.ts:87 
+            
+            
+           GET https://files.soundoftext.com/677f4ca0-5143-11f0-9564-05a2f3b61c77.mp3 net::ERR_FAILED
+downloadBatch @ download.ts:87
+await in downloadBatch
+handleBatchDownload @ learning.tsx:34
+callCallback2 @ chunk-UZOKQUDP.js?v=9caef117:3674
+invokeGuardedCallbackDev @ chunk-UZOKQUDP.js?v=9caef117:3699
+invokeGuardedCallback @ chunk-UZOKQUDP.js?v=9caef117:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UZOKQUDP.js?v=9caef117:3736
+executeDispatch @ chunk-UZOKQUDP.js?v=9caef117:7014
+processDispatchQueueItemsInOrder @ chunk-UZOKQUDP.js?v=9caef117:7034
+processDispatchQueue @ chunk-UZOKQUDP.js?v=9caef117:7043
+dispatchEventsForPlugins @ chunk-UZOKQUDP.js?v=9caef117:7051
+(anonymous) @ chunk-UZOKQUDP.js?v=9caef117:7174
+batchedUpdates$1 @ chunk-UZOKQUDP.js?v=9caef117:18913
+batchedUpdates @ chunk-UZOKQUDP.js?v=9caef117:3579
+dispatchEventForPluginEventSystem @ chunk-UZOKQUDP.js?v=9caef117:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UZOKQUDP.js?v=9caef117:5478
+dispatchEvent @ chunk-UZOKQUDP.js?v=9caef117:5472
+dispatchDiscreteEvent @ chunk-UZOKQUDP.js?v=9caef117:5449Understand this error
+download.ts:100 Failed to generate example audio for card 2: TypeError: Failed to fetch
+    at DownloadService.downloadBatch (download.ts:87:41)
+    at async handleBatchDownload (learning.tsx:34:7)
