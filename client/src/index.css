@@ -5,6 +5,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ensure floating controls stay above everything */
+.floating-controls {
+  z-index: 9999 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent touch interference with controls */
+.touch-area {
+  touch-action: manipulation;
+}
+
 /* Smooth page transitions */
 * {
   transition: transform 0.3s ease, opacity 0.3s ease;

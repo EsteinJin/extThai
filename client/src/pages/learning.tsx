@@ -351,17 +351,18 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Floating Control Panel */}
+        {/* Floating Control Panel - Always Visible */}
         {cards.length > 0 && (
-          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg rounded-full border border-gray-200 dark:border-gray-600 shadow-lg px-2 py-2">
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 pointer-events-auto">
+            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-full border border-gray-300 dark:border-gray-600 shadow-2xl px-2 py-2 transition-all duration-200">
               <div className="flex items-center gap-1">
                 {/* Previous Button */}
                 <Button
                   variant="ghost"
                   onClick={goToPrev}
                   size="sm"
-                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150 hover:scale-105 active:scale-95"
+                  title="上一张 (← 键)"
                 >
                   <SkipBack className="w-4 h-4" />
                 </Button>
@@ -372,11 +373,12 @@ export default function LearningPage() {
                   onClick={markCurrentCardCompleted}
                   disabled={completedCards.includes(currentIndex)}
                   size="sm"
-                  className={`h-10 w-10 rounded-full p-0 ${
+                  className={`h-10 w-10 rounded-full p-0 transition-all duration-150 hover:scale-105 active:scale-95 ${
                     completedCards.includes(currentIndex) 
                       ? 'bg-green-600 text-white hover:bg-green-700' 
                       : 'hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400'
                   }`}
+                  title="标记完成 (C 键)"
                 >
                   {completedCards.includes(currentIndex) ? (
                     <CheckCircle className="w-4 h-4" />
@@ -396,10 +398,11 @@ export default function LearningPage() {
                     });
                   }}
                   size="sm"
-                  className={`h-10 w-10 rounded-full p-0 ${autoPageTurn 
+                  className={`h-10 w-10 rounded-full p-0 transition-all duration-150 hover:scale-105 active:scale-95 ${autoPageTurn 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
+                  title="自动翻页 (T 键)"
                 >
                   {autoPageTurn ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4" />}
                 </Button>
@@ -418,7 +421,8 @@ export default function LearningPage() {
                     });
                   }}
                   size="sm"
-                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150 hover:scale-105 active:scale-95"
+                  title="换一组 (R 键)"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
@@ -428,7 +432,8 @@ export default function LearningPage() {
                   variant="ghost"
                   onClick={goToNext}
                   size="sm"
-                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150 hover:scale-105 active:scale-95"
+                  title="下一张 (空格/→ 键)"
                 >
                   <SkipForward className="w-4 h-4" />
                 </Button>
@@ -439,8 +444,8 @@ export default function LearningPage() {
 
         {/* Minimal Tips */}
         {cards.length > 0 && !showHelp && (
-          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="text-xs text-gray-400 dark:text-gray-500 text-center bg-black/20 dark:bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 pointer-events-none">
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center bg-black/30 dark:bg-white/20 backdrop-blur-md rounded-full px-3 py-1 transition-all duration-200">
               {autoPageTurn ? (
                 <span className="text-blue-400 font-medium">自动翻页中 (8秒)</span>
               ) : (
@@ -452,12 +457,12 @@ export default function LearningPage() {
 
         {/* Help Button - Fixed Position */}
         {cards.length > 0 && !showHelp && (
-          <div className="fixed top-4 right-4 z-10">
+          <div className="fixed top-4 right-4 z-40 pointer-events-auto">
             <Button
               onClick={() => setShowHelp(true)}
               variant="outline"
               size="sm"
-              className="h-8 w-8 rounded-full p-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-gray-300 dark:border-gray-600"
+              className="h-8 w-8 rounded-full p-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-gray-300 dark:border-gray-600 shadow-lg transition-all duration-200 hover:scale-105"
             >
               ?
             </Button>
