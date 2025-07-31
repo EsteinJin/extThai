@@ -1,29 +1,21 @@
-import { apiRequest } from "./queryClient";
+import { apiRequest } from "@/lib/queryClient";
 
-export interface AudioGenerationRequest {
+interface AudioStatusResponse {
+  status: "Pending" | "Done" | "Error";
+  location?: string;
+}
+
+interface PlaybackRecord {
   text: string;
-  language?: string;
-}
-
-export interface AudioGenerationResponse {
+  timestamp: number;
   success: boolean;
-  id?: string;
-  location?: string;
-  error?: string;
-}
-
-export interface AudioStatusResponse {
-  status: string;
-  location?: string;
 }
 
 export class AudioService {
   private static instance: AudioService;
-  private audioCache = new Map<string, string>();
   private htmlAudioCache = new Map<string, HTMLAudioElement>();
   private currentAudio: HTMLAudioElement | null = null;
-  private speechSynthesis: SpeechSynthesis | null = null;
-  private playbackHistory: Array<{text: string, timestamp: number, success: boolean}> = [];
+  private playbackHistory: PlaybackRecord[] = [];
 
   static getInstance(): AudioService {
     if (!AudioService.instance) {
@@ -32,130 +24,182 @@ export class AudioService {
     return AudioService.instance;
   }
 
-  constructor() {
-    this.speechSynthesis = window.speechSynthesis || null;
-  }
-
-  // Stop all current audio playback
   stopAllAudio(): void {
-    // Stop HTML5 Audio
+    console.log("🛑 Stopping all audio");
+    
+    // Stop current audio immediately
     if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
-      this.currentAudio = null;
-    }
-
-    // Stop Speech Synthesis
-    if (this.speechSynthesis) {
-      this.speechSynthesis.cancel();
-    }
-  }
-
-  async generateAudio(text: string, language: string = "th-TH"): Promise<string | null> {
-    const cacheKey = `${text}_${language}`;
-    
-    // Check cache first
-    if (this.audioCache.has(cacheKey)) {
-      return this.audioCache.get(cacheKey)!;
-    }
-
-    try {
-      // Generate audio
-      const generateResponse = await apiRequest("/api/audio/generate", "POST", {
-        text,
-        language
-      });
-      
-      const generateResult: AudioGenerationResponse = await generateResponse;
-      
-      if (!generateResult.success || !generateResult.id) {
-        throw new Error("Failed to generate audio");
-      }
-
-      // Poll for audio completion and return proxy URL
-      const audioId = await this.pollForAudioId(generateResult.id);
-      
-      if (audioId) {
-        // Use our proxy endpoint instead of direct soundoftext URL
-        const proxyUrl = `/api/audio/download/${audioId}`;
-        this.audioCache.set(cacheKey, proxyUrl);
-        return proxyUrl;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Audio generation failed:", error);
-      return null;
-    }
-  }
-
-  private async pollForAudioId(id: string, maxAttempts: number = 10): Promise<string | null> {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const statusResult: AudioStatusResponse = await apiRequest(`/api/audio/${id}`, "GET");
-        
-        if (statusResult.status === "Done") {
-          return id; // Return the ID to use with our proxy endpoint
-        }
-        
-        if (statusResult.status === "Error") {
-          throw new Error("Audio generation failed");
-        }
-        
-        // Wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error(`Audio polling attempt ${attempt + 1} failed:`, error);
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+        this.currentAudio.src = '';
+        this.currentAudio = null;
+      } catch (e) {
+        // Ignore errors when stopping audio
       }
     }
     
-    return null;
+    // Clear any cached audio elements that may be playing
+    this.htmlAudioCache.forEach(audio => {
+      try {
+        if (!audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.src = '';
+        }
+      } catch (e) {
+        // Ignore errors when stopping cached audio
+      }
+    });
+    
+    // Clear cache completely
+    this.htmlAudioCache.clear();
   }
 
-  async playAudio(text: string, language: string = "th-TH"): Promise<void> {
+  async playAudio(text: string, language: string = "th-TH", cardId?: number): Promise<void> {
     const startTime = performance.now();
     
     // Stop any currently playing audio first
     this.stopAllAudio();
 
     try {
-      // Try Speech Synthesis first for faster response
-      await this.playWithSpeechSynthesis(text, language);
+      // Only use backend pre-generated high-quality audio
+      const backendAudioPlayed = await this.tryBackendAudio(text, cardId);
+      if (backendAudioPlayed) {
+        this.recordPlayback(text, startTime, true);
+        return;
+      }
+
+      // No fallback - only backend audio supported
+      console.log(`⚠️ No backend audio available for "${text}". Please generate audio files first.`);
+      this.recordPlayback(text, startTime, false);
       
-      // Record successful playback
-      this.recordPlayback(text, startTime, true);
     } catch (error) {
-      console.error("Speech synthesis failed, trying external audio:", error);
+      console.error("Backend audio playback failed:", error);
+      this.recordPlayback(text, startTime, false);
+    }
+  }
+
+  private cardCache = new Map<number, any>();
+  private cacheTimestamp = 0;
+  private readonly CACHE_DURATION = 30000; // 30 seconds cache
+
+  private async getCardData(cardId: number): Promise<any> {
+    const now = Date.now();
+    
+    // Check if cache is expired
+    if (now - this.cacheTimestamp > this.CACHE_DURATION) {
+      this.cardCache.clear();
+      this.cacheTimestamp = now;
+    }
+    
+    // Return cached card if available
+    if (this.cardCache.has(cardId)) {
+      return this.cardCache.get(cardId);
+    }
+    
+    // Fetch all cards and cache them
+    try {
+      const response = await fetch(`/api/cards`);
+      const cards = await response.json();
       
-      try {
-        const audioUrl = await this.generateAudio(text, language);
+      // Cache all cards for faster subsequent lookups
+      cards.forEach((card: any) => {
+        this.cardCache.set(card.id, card);
+      });
+      
+      return this.cardCache.get(cardId);
+    } catch (error) {
+      console.log("Failed to fetch card data:", error);
+      return null;
+    }
+  }
+
+  private async tryBackendAudio(text: string, cardId?: number): Promise<boolean> {
+    try {
+      // If we have a card ID, try to get the audio file path from cached card data
+      if (cardId) {
+        const card = await this.getCardData(cardId);
         
-        if (audioUrl) {
-          // Check cache for HTML Audio object
-          let audio = this.htmlAudioCache.get(audioUrl);
-          if (!audio) {
-            audio = new Audio(audioUrl);
-            this.htmlAudioCache.set(audioUrl, audio);
-            
-            // Preload for better performance
-            audio.preload = 'metadata';
+        if (card) {
+          // Try word audio path first
+          if (card.word_audio && text === card.thai) {
+            const audioUrl = `/api/audio/generated/${card.word_audio.split('/').pop()}`;
+            if (await this.playAudioFile(audioUrl, text)) return true;
           }
           
-          this.currentAudio = audio;
-          
-          // Clear reference when audio ends
-          audio.addEventListener('ended', () => {
-            this.currentAudio = null;
-          });
-          
-          await audio.play();
-          this.recordPlayback(text, startTime, true);
+          // Try example audio path
+          if (card.example_audio && text === card.example) {
+            const audioUrl = `/api/audio/generated/${card.example_audio.split('/').pop()}`;
+            if (await this.playAudioFile(audioUrl, text)) return true;
+          }
         }
-      } catch (audioError) {
-        console.error("All audio playback methods failed:", audioError);
-        this.recordPlayback(text, startTime, false);
-        // Silently fail rather than throwing error
       }
+      
+      // Fallback: Try pattern-based filename search (for backward compatibility)
+      const possibleFilenames = [
+        `${text.replace(/[^a-zA-Zก-๙0-9]/g, '_')}.mp3`,
+        `word_${text.replace(/[^a-zA-Zก-๙0-9]/g, '_')}.mp3`,
+        `example_${text.replace(/[^a-zA-Zก-๙0-9]/g, '_')}.mp3`
+      ];
+      
+      for (const filename of possibleFilenames) {
+        const audioUrl = `/api/audio/generated/${filename}`;
+        if (await this.playAudioFile(audioUrl, text)) return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.log(`📱 Backend audio not available for "${text}":`, error);
+      return false;
+    }
+  }
+
+  private async playAudioFile(audioUrl: string, text: string): Promise<boolean> {
+    try {
+      console.log(`🎯 Playing audio: "${text}" (${audioUrl.split('/').pop()})`);
+      
+      // Stop current audio before playing new one
+      this.stopAllAudio();
+      
+      // Create new audio instance 
+      const audio = new Audio(audioUrl);
+      audio.preload = 'metadata';
+      
+      this.currentAudio = audio;
+      
+      // Clean up after playback
+      const cleanup = () => {
+        if (this.currentAudio === audio) {
+          this.currentAudio = null;
+        }
+      };
+      
+      audio.addEventListener('ended', cleanup, { once: true });
+      audio.addEventListener('error', cleanup, { once: true });
+      
+      // Direct playback with promise
+      return new Promise((resolve) => {
+        audio.addEventListener('canplay', async () => {
+          try {
+            await audio.play();
+            resolve(true);
+          } catch (playError) {
+            console.log(`⚠️ Play failed: ${audioUrl}`);
+            cleanup();
+            resolve(false);
+          }
+        }, { once: true });
+        
+        audio.addEventListener('error', () => {
+          console.log(`⚠️ Audio load failed: ${audioUrl}`);
+          cleanup();
+          resolve(false);
+        }, { once: true });
+      });
+    } catch (error) {
+      console.log(`⚠️ Audio error: ${error}`);
+      return false;
     }
   }
 
@@ -186,110 +230,7 @@ export class AudioService {
       averageResponseTime: 0 // Could calculate if we stored timing
     };
   }
-
-  private async playWithSpeechSynthesis(text: string, language: string = "th-TH"): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.speechSynthesis) {
-        reject(new Error("Speech synthesis not supported"));
-        return;
-      }
-
-      // Stop any current speech
-      this.speechSynthesis.cancel();
-
-      // Wait longer for mobile devices to properly clear previous speech
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language;
-        utterance.rate = 0.8; // Slower for mobile clarity
-        utterance.volume = 1.0;
-        utterance.pitch = 1.0;
-
-        let resolved = false;
-        
-        const resolveOnce = () => {
-          if (!resolved) {
-            resolved = true;
-            resolve();
-          }
-        };
-
-        // Enhanced mobile compatibility
-        utterance.onstart = () => {
-          console.log(`🎵 Mobile TTS started: ${text}`);
-        };
-
-        utterance.onend = () => {
-          console.log(`✅ Mobile TTS completed: ${text}`);
-          resolveOnce();
-        };
-
-        utterance.onerror = (event) => {
-          console.warn(`Mobile TTS error: ${event.error}`);
-          resolveOnce(); // Don't reject, just resolve to continue
-        };
-
-        // Get voices with mobile compatibility check
-        let voices = this.speechSynthesis!.getVoices();
-        
-        const playWithVoice = () => {
-          // Find the best Thai voice for mobile
-          const thaiVoice = voices.find(voice => 
-            voice.lang.toLowerCase().includes('th') || 
-            voice.name.toLowerCase().includes('thai')
-          );
-          
-          if (thaiVoice) {
-            utterance.voice = thaiVoice;
-            console.log(`📱 Using Thai voice for mobile: ${thaiVoice.name}`);
-          } else {
-            // Fallback to any available voice on mobile
-            console.log("📱 No Thai voice found on mobile, using default");
-          }
-
-          // Mobile-specific: Force interaction before playing
-          if (window.navigator.userAgent.includes('Mobile')) {
-            console.log("📱 Mobile device detected, ensuring TTS compatibility");
-          }
-
-          try {
-            this.speechSynthesis!.speak(utterance);
-          } catch (error) {
-            console.error("📱 Mobile TTS speak error:", error);
-            resolveOnce();
-          }
-        };
-
-        // Handle voices loading asynchronously (critical for mobile)
-        if (voices.length === 0) {
-          this.speechSynthesis!.onvoiceschanged = () => {
-            voices = this.speechSynthesis!.getVoices();
-            if (voices.length > 0) {
-              playWithVoice();
-            }
-          };
-          
-          // Fallback timeout if voices never load
-          setTimeout(() => {
-            if (voices.length === 0) {
-              console.warn("📱 Mobile voices never loaded, playing without voice selection");
-              this.speechSynthesis!.speak(utterance);
-            }
-          }, 1000);
-        } else {
-          playWithVoice();
-        }
-        
-        // Extended timeout for mobile devices
-        setTimeout(() => {
-          if (!resolved) {
-            console.warn("📱 Mobile TTS timeout, resolving anyway");
-            resolveOnce();
-          }
-        }, 8000); // 8 second timeout for mobile
-      }, 300); // 300ms delay for mobile
-    });
-  }
 }
 
+// Export singleton instance
 export const audioService = AudioService.getInstance();

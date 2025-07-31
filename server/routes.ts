@@ -346,19 +346,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         try {
-          // Generate audio files
+          // Delete old audio files before generating new ones
+          if (card.word_audio) {
+            const fileName = card.word_audio.split('/').pop();
+            if (fileName) {
+              const oldWordPath = path.join(process.cwd(), "generated", "audio", fileName);
+              try {
+                await fs.unlink(oldWordPath);
+                console.log(`🗑️ Deleted old word audio: ${card.word_audio}`);
+              } catch (err) {
+                // File might not exist, ignore error
+              }
+            }
+          }
+          
+          if (card.example_audio) {
+            const fileName = card.example_audio.split('/').pop();
+            if (fileName) {
+              const oldExamplePath = path.join(process.cwd(), "generated", "audio", fileName);
+              try {
+                await fs.unlink(oldExamplePath);
+                console.log(`🗑️ Deleted old example audio: ${card.example_audio}`);
+              } catch (err) {
+                // File might not exist, ignore error
+              }
+            }
+          }
+          
+          // Generate new audio files
           const wordAudioPath = await generateAudio(card.thai, `word_${cardId}_${Date.now()}.mp3`);
           const exampleAudioPath = await generateAudio(card.example, `example_${cardId}_${Date.now()}.mp3`);
           
           // Generate card image
           const cardImagePath = await generateCardImage(card, `card_${cardId}_${Date.now()}.svg`);
           
-          // Update card with file paths
+          // Update card with new file paths
           await storage.updateCard(cardId, {
             word_audio: wordAudioPath,
             example_audio: exampleAudioPath,
             card_image: cardImagePath
           });
+          
+          console.log(`✅ Updated card ${cardId} with new audio files: ${wordAudioPath}, ${exampleAudioPath}`);
           
           results.push({ 
             cardId, 
@@ -433,34 +462,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Helper function to generate audio using text-to-speech API
+// Helper function to generate audio using SoundofText API
 async function generateAudio(text: string, filename: string): Promise<string> {
   try {
     // Create directories if they don't exist
     const audioDir = path.join(process.cwd(), "generated", "audio");
     await fs.mkdir(audioDir, { recursive: true });
     
-    console.log(`🎵 Generating audio for: ${text}`);
+    console.log(`🎵 Generating high-quality audio for: ${text}`);
     
-    // Since external TTS APIs are unreliable, create a metadata file
-    // that tells the frontend to use browser's Speech Synthesis API
+    try {
+      // Try SoundofText API first for better quality
+      const generateResponse = await fetch('https://api.soundoftext.com/sounds', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          engine: 'Google',
+          data: {
+            text: text,
+            voice: 'th-TH'
+          }
+        })
+      });
+
+      if (generateResponse.ok) {
+        const result = await generateResponse.json();
+        
+        if (result.success && result.id) {
+          // Poll for completion
+          const audioUrl = await pollForAudioCompletion(result.id);
+          
+          if (audioUrl) {
+            // Download and save the audio file
+            const audioResponse = await fetch(audioUrl);
+            if (audioResponse.ok) {
+              const audioBuffer = await audioResponse.arrayBuffer();
+              const audioPath = path.join(audioDir, filename);
+              await fs.writeFile(audioPath, Buffer.from(audioBuffer));
+              
+              console.log(`✅ Generated high-quality audio: ${filename}`);
+              return `generated/audio/${filename}`;
+            }
+          }
+        }
+      }
+    } catch (apiError) {
+      console.warn(`🔄 SoundofText API failed for "${text}", creating fallback metadata`);
+    }
+    
+    // Fallback: Create metadata file for client-side TTS
     const metadataContent = JSON.stringify({
       text: text,
       language: "th-TH",
       timestamp: Date.now(),
-      useClientTTS: true
+      useClientTTS: true,
+      fallback: true
     });
     
-    const filePath = path.join(audioDir, filename.replace('.mp3', '.json'));
-    await fs.writeFile(filePath, metadataContent);
+    const metadataPath = path.join(audioDir, filename.replace('.mp3', '.json'));
+    await fs.writeFile(metadataPath, metadataContent);
     
-    console.log(`✅ Created TTS metadata: ${filename.replace('.mp3', '.json')}`);
+    console.log(`✅ Created fallback TTS metadata: ${filename.replace('.mp3', '.json')}`);
     return `generated/audio/${filename.replace('.mp3', '.json')}`;
     
   } catch (error) {
-    console.error("Error generating audio metadata:", error);
+    console.error("Error generating audio:", error);
     throw error;
   }
+}
+
+// Helper function to poll SoundofText API for completion
+async function pollForAudioCompletion(id: string, maxAttempts: number = 15): Promise<string | null> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const statusResponse = await fetch(`https://api.soundoftext.com/sounds/${id}`);
+      
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        
+        if (statusResult.status === 'Done') {
+          return statusResult.location;
+        }
+        
+        if (statusResult.status === 'Error') {
+          throw new Error('SoundofText generation failed');
+        }
+        
+        // Wait before next attempt
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (error) {
+      console.warn(`Audio polling attempt ${attempt + 1} failed:`, error);
+    }
+  }
+  
+  return null;
 }
 
 // Helper function to generate card image using SVG

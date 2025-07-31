@@ -32,15 +32,15 @@ export function FlashCard({ card, index }: FlashCardProps) {
     try {
       setLoading(true);
       
-      // Use AudioService playAudio method which handles TTS and external audio
+      // Use AudioService playAudio method with card ID for better audio lookup
       console.log(`🎯 Playing ${type} audio: ${text}`);
-      await audioService.playAudio(text, "th-TH");
+      await audioService.playAudio(text, "th-TH", card.id);
       
     } catch (error) {
       console.error("Audio playback failed:", error);
       toast({
         title: "音频播放失败",
-        description: "请检查网络连接后重试",
+        description: "请先生成音频文件",
         variant: "destructive",
       });
     } finally {
@@ -50,27 +50,40 @@ export function FlashCard({ card, index }: FlashCardProps) {
 
   return (
     <div 
-      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[50vh] max-h-[85vh] flex flex-col card-transition cursor-pointer transform hover:scale-[1.02]"
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[45vh] max-h-[75vh] flex flex-col card-transition cursor-pointer transform hover:scale-[1.02]"
       onClick={() => setCardFlipped(!cardFlipped)}
     >
-      <div className="p-4 md:p-6 lg:p-8 flex-1 flex flex-col justify-center">        
-        <div className="space-y-4 md:space-y-6">
-          {/* Thai Word - Optimized for mobile */}
+      <div className="p-3 md:p-4 lg:p-6 flex-1 flex flex-col justify-center">        
+        <div className="space-y-3 md:space-y-4">
+          {/* Thai Word with Play Icon - Compressed layout */}
           <div className="text-center">
-            <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3 leading-tight" style={{fontFamily: 'sans-serif'}}>
-              {card.thai}
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight" style={{fontFamily: 'sans-serif'}}>
+                {card.thai}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlayAudio(card.thai, "word");
+                }}
+                disabled={isPlayingWord}
+                className="flex-shrink-0 p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
+                title="播放语音"
+              >
+                <Play className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
+              </button>
             </div>
-            <div className="text-lg md:text-xl text-gray-500 dark:text-gray-400 italic font-medium">
+            <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 italic font-medium">
               {card.pronunciation}
             </div>
           </div>
           
           {/* Divider */}
-          <div className="border-t border-gray-200 dark:border-gray-600 w-12 mx-auto"></div>
+          <div className="border-t border-gray-200 dark:border-gray-600 w-8 mx-auto"></div>
           
           {/* Chinese Translation */}
           <div className={`text-center transition-opacity duration-300 ${cardFlipped ? 'opacity-100' : 'opacity-70'}`}>
-            <div className="text-2xl md:text-3xl lg:text-4xl font-semibold text-gray-800 dark:text-gray-200">
+            <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-800 dark:text-gray-200">
               {card.chinese}
             </div>
             {!cardFlipped && (
@@ -115,32 +128,6 @@ export function FlashCard({ card, index }: FlashCardProps) {
               </div>
             </div>
           )}
-        </div>
-        
-        {/* Play button for Thai word - Compact mobile design */}
-        <div className="flex justify-center mt-4 md:mt-6">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlayAudio(card.thai, "word");
-            }}
-            variant="outline"
-            size="default"
-            className="px-6 py-2 text-blue-600 hover:text-blue-800 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-200 dark:border-blue-800 dark:hover:bg-blue-900/20 shadow-sm hover:shadow-md transition-all duration-300"
-            disabled={isPlayingWord}
-          >
-            {isPlayingWord ? (
-              <div className="animate-pulse flex items-center">
-                <Volume2 className="w-5 h-5 mr-2" />
-                <span className="text-base font-medium">播放中...</span>
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <Play className="w-5 h-5 mr-2" />
-                <span className="text-base font-medium">播放发音</span>
-              </div>
-            )}
-          </Button>
         </div>
       </div>
     </div>

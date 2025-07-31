@@ -2,6 +2,7 @@ export interface LearningSettings {
   autoPlaySpeed: number; // 0.5-2.0
   cardFlipDelay: number; // ms
   audioVolume: number; // 0-1
+  audioPitch: number; // 0.5-2.0
   keyboardEnabled: boolean;
   gesturesEnabled: boolean;
   showPronunciation: boolean;
@@ -9,6 +10,8 @@ export interface LearningSettings {
   exampleAudio: boolean;
   darkMode: boolean;
   animationsEnabled: boolean;
+  voiceQuality: 'high' | 'standard' | 'fast';
+  useTextPreprocessing: boolean;
 }
 
 export class SettingsService {
@@ -26,7 +29,8 @@ export class SettingsService {
     return {
       autoPlaySpeed: 0.8,
       cardFlipDelay: 300,
-      audioVolume: 1.0,
+      audioVolume: 0.9,
+      audioPitch: 0.95,
       keyboardEnabled: true,
       gesturesEnabled: true,
       showPronunciation: true,
@@ -34,6 +38,8 @@ export class SettingsService {
       exampleAudio: true,
       darkMode: false,
       animationsEnabled: true,
+      voiceQuality: 'high',
+      useTextPreprocessing: true,
     };
   }
 

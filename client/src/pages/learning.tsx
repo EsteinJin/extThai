@@ -9,6 +9,7 @@ import { Link, useParams } from "wouter";
 import { AudioService } from "@/lib/audio";
 import { progressService } from "@/lib/progress";
 import { settingsService } from "@/lib/settings";
+// Voice settings removed - only backend audio supported
 
 export default function LearningPage() {
   const { toast } = useToast();
@@ -65,12 +66,17 @@ export default function LearningPage() {
   }, [level, currentIndex, completedCards, isDarkMode, cards.length]);
 
   const audioService = AudioService.getInstance();
+  
+  // Track if auto-play is in progress to prevent overlapping
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Navigation functions with audio stop
+  // Navigation functions with immediate audio stop
   const goToNext = useCallback(() => {
     if (cards.length > 0) {
-      // Stop current audio before changing cards
+      console.log("⏭️ Going to next card");
+      // Force stop all audio and reset auto-play state
       audioService.stopAllAudio();
+      setIsAutoPlaying(false);
       const nextIndex = (currentIndex + 1) % cards.length;
       setCurrentIndex(nextIndex);
     }
@@ -78,8 +84,10 @@ export default function LearningPage() {
 
   const goToPrev = useCallback(() => {
     if (cards.length > 0) {
-      // Stop current audio before changing cards
+      console.log("⏮️ Going to previous card");
+      // Force stop all audio and reset auto-play state
       audioService.stopAllAudio();
+      setIsAutoPlaying(false);  
       const prevIndex = currentIndex === 0 ? cards.length - 1 : currentIndex - 1;
       setCurrentIndex(prevIndex);
     }
@@ -101,44 +109,41 @@ export default function LearningPage() {
 
 
 
-  // Auto-play audio when card changes - always play word and example after page turn
-  useEffect(() => {
-    if (cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length && cards[currentIndex]) {
-      console.log(`🎵 Auto-playing audio for card ${currentIndex + 1}/${cards.length}: ${cards[currentIndex].thai}`);
+  // Manual audio playback only - NO AUTO-PLAY to prevent issues
+  const playCardAudio = useCallback(async () => {
+    if (cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length && cards[currentIndex] && !isAutoPlaying) {
+      const card = cards[currentIndex];
+      console.log(`🎵 Manual play for card: ${card.thai}`);
       
-      const playSequentialAudio = async () => {
-        try {
-          // Stop any currently playing audio first
-          audioService.stopAllAudio();
-          
-          const card = cards[currentIndex];
-          
-          // Play word audio first (always play this)
-          console.log(`🎯 Playing word: ${card.thai}`);
-          await audioService.playAudio(card.thai, "th-TH");
-          
-          // Small delay between word and example for better listening experience
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          // Play example audio if exists
-          if (card.example && card.example.trim()) {
-            console.log(`🎯 Playing example: ${card.example}`);
-            await audioService.playAudio(card.example, "th-TH");
-          }
-        } catch (error) {
-          console.error("Auto-play failed:", error);
+      setIsAutoPlaying(true);
+      try {
+        // Stop any currently playing audio first
+        audioService.stopAllAudio();
+        
+        // Play word audio first
+        console.log(`🎯 Playing word: ${card.thai}`);
+        await audioService.playAudio(card.thai, "th-TH", card.id);
+        
+        // Play example audio after word
+        if (card.example && card.example.trim()) {
+          console.log(`🎯 Playing example: ${card.example}`);
+          await audioService.playAudio(card.example, "th-TH", card.id);
         }
-      };
-      
-      // Small delay to allow UI to update before starting audio
-      setTimeout(playSequentialAudio, 300);
+      } catch (error) {
+        console.error("Manual audio play failed:", error);
+      } finally {
+        setIsAutoPlaying(false);
+      }
     }
-  }, [currentIndex, cards, audioService]);
+  }, [cards, currentIndex, isAutoPlaying, audioService]);
 
-  // Auto page turn functionality
+  // Auto page turn functionality - disabled to prevent audio issues
   useEffect(() => {
     if (autoPageTurn && cards.length > 0) {
       const interval = setInterval(() => {
+        // Stop audio before auto page turn
+        audioService.stopAllAudio();
+        setIsAutoPlaying(false);
         goToNext();
       }, 8000); // Turn page every 8 seconds
       
@@ -148,7 +153,7 @@ export default function LearningPage() {
       clearInterval(autoPageInterval);
       setAutoPageInterval(null);
     }
-  }, [autoPageTurn, goToNext, cards.length]);
+  }, [autoPageTurn, goToNext, cards.length, audioService]);
 
   // Clean up interval on unmount
   useEffect(() => {
@@ -321,11 +326,26 @@ export default function LearningPage() {
           <div className="flex-1 flex items-center justify-center px-3 py-4">
             <div className="w-full max-w-lg">
               {cards[currentIndex] ? (
-                <FlashCard 
-                  key={`card-${cards[currentIndex].id}-${currentIndex}`} 
-                  card={cards[currentIndex]} 
-                  index={currentIndex} 
-                />
+                <>
+                  <FlashCard 
+                    key={`card-${cards[currentIndex].id}-${currentIndex}`} 
+                    card={cards[currentIndex]} 
+                    index={currentIndex} 
+                  />
+                  
+                  {/* Manual Play Button */}
+                  <div className="flex justify-center mt-4">
+                    <Button
+                      onClick={playCardAudio}
+                      disabled={isAutoPlaying}
+                      size="lg"
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                    >
+                      <Play className="w-5 h-5 mr-2" />
+                      {isAutoPlaying ? "播放中..." : "播放音频"}
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg min-h-[50vh] flex items-center justify-center">
                   <div className="text-gray-500 dark:text-gray-400 text-lg">
@@ -455,9 +475,12 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Help Button - Fixed Position */}
+        {/* Help and Settings Buttons - Fixed Position */}
         {cards.length > 0 && !showHelp && (
-          <div className="fixed top-4 right-4 z-40 pointer-events-auto">
+          <div className="fixed top-4 right-4 z-40 pointer-events-auto flex gap-2">
+            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-full border border-gray-300 dark:border-gray-600 shadow-lg p-1">
+    
+            </div>
             <Button
               onClick={() => setShowHelp(true)}
               variant="outline"
