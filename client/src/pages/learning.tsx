@@ -176,7 +176,6 @@ export default function LearningPage() {
           event.preventDefault();
           goToPrev();
           break;
-
         case 'KeyD':
           event.preventDefault();
           setIsDarkMode(prev => !prev);
@@ -193,12 +192,33 @@ export default function LearningPage() {
             description: autoPageTurn ? "停止自动翻页" : "每8秒自动翻到下一张卡片",
           });
           break;
+        case 'KeyR':
+          event.preventDefault();
+          audioService.stopAllAudio();
+          refetch();
+          setCurrentIndex(0);
+          setCompletedCards([]);
+          toast({
+            title: "换一组",
+            description: "已重新获取随机卡片",
+          });
+          break;
+        case 'Escape':
+          if (showHelp) {
+            event.preventDefault();
+            setShowHelp(false);
+          }
+          break;
+        case 'KeyH':
+          event.preventDefault();
+          setShowHelp(!showHelp);
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [goToNext, goToPrev]);
+  }, [goToNext, goToPrev, autoPageTurn, showHelp, refetch, audioService, setCurrentIndex, setCompletedCards, toast]);
 
   // Touch/swipe support
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -249,68 +269,57 @@ export default function LearningPage() {
       onTouchEnd={handleTouchEnd}
     >
       <div className={`min-h-screen flex flex-col transition-colors ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
-        {/* Minimalist Mobile Header */}
-        <div className="flex justify-between items-center p-4 shrink-0">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className={`${
-              isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'
-            }`}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回
-            </Button>
-          </Link>
+        {/* Clean Mobile Header */}
+        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="h-8 px-2">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <div className="text-sm font-medium">
+              基础泰语{level}
+            </div>
+          </div>
           
           {cards.length > 0 && (
-            <div className="flex items-center gap-4">
-              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {Math.min(currentIndex + 1, cards.length)} / {cards.length}
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {Math.min(currentIndex + 1, cards.length)}/{cards.length}
               </div>
-              
-              <Button
-                variant={completedCards.includes(currentIndex) ? "default" : "ghost"}
-                onClick={markCurrentCardCompleted}
-                disabled={cards.length === 0 || completedCards.includes(currentIndex)}
-                size="sm"
-                className={`${
-                  completedCards.includes(currentIndex) 
-                    ? 'bg-green-600 text-white hover:bg-green-700' 
-                    : 'text-green-600 hover:bg-green-50'
-                }`}
-              >
-                {completedCards.includes(currentIndex) ? (
-                  <CheckCircle className="w-4 h-4" />
-                ) : (
-                  <Circle className="w-4 h-4" />
-                )}
-              </Button>
-
+              {completedCards.length > 0 && (
+                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                  ✓{completedCards.length}
+                </div>
+              )}
               <Button
                 variant="ghost"
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 size="sm"
+                className="h-8 w-8 p-0"
               >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {isDarkMode ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
               </Button>
             </div>
           )}
         </div>
 
-        {/* Progress Indicator */}
+        {/* Slim Progress Indicator */}
         {cards.length > 0 && (
-          <div className="px-4 pb-4 shrink-0">
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+          <div className="px-4 pb-1 shrink-0">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-0.5">
               <div 
-                className="bg-green-500 h-1 rounded-full transition-all duration-500"
+                className="bg-green-500 h-0.5 rounded-full transition-all duration-500"
                 style={{ width: `${(completedCards.length / cards.length) * 100}%` }}
               ></div>
             </div>
           </div>
         )}
 
-        {/* Full Screen Card View */}
+        {/* Optimized Card View */}
         {cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length ? (
-          <div className="flex-1 flex items-center justify-center px-4 py-8">
-            <div className="w-full max-w-4xl">
+          <div className="flex-1 flex items-center justify-center px-3 py-4">
+            <div className="w-full max-w-lg">
               {cards[currentIndex] ? (
                 <FlashCard 
                   key={`card-${cards[currentIndex].id}-${currentIndex}`} 
@@ -318,9 +327,9 @@ export default function LearningPage() {
                   index={currentIndex} 
                 />
               ) : (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-3xl shadow-xl min-h-[70vh] flex items-center justify-center">
-                  <div className="text-gray-500 dark:text-gray-400 text-xl">
-                    卡片 {currentIndex + 1} 加载失败
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg min-h-[50vh] flex items-center justify-center">
+                  <div className="text-gray-500 dark:text-gray-400 text-lg">
+                    卡片加载失败
                   </div>
                 </div>
               )}
@@ -342,128 +351,156 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Navigation Buttons and Tips */}
+        {/* Floating Control Panel */}
         {cards.length > 0 && (
-          <div className="px-4 pb-4 shrink-0">
-            <div className="flex justify-between items-center mb-2">
-              <Button
-                variant="ghost"
-                onClick={goToPrev}
-                disabled={cards.length === 0}
-                className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                <SkipBack className="w-4 h-4 mr-2" />
-                上一张
-              </Button>
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg rounded-full border border-gray-200 dark:border-gray-600 shadow-lg px-2 py-2">
+              <div className="flex items-center gap-1">
+                {/* Previous Button */}
+                <Button
+                  variant="ghost"
+                  onClick={goToPrev}
+                  size="sm"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
 
-              <div className="flex space-x-2">
+                {/* Complete Button */}
+                <Button
+                  variant={completedCards.includes(currentIndex) ? "default" : "ghost"}
+                  onClick={markCurrentCardCompleted}
+                  disabled={completedCards.includes(currentIndex)}
+                  size="sm"
+                  className={`h-10 w-10 rounded-full p-0 ${
+                    completedCards.includes(currentIndex) 
+                      ? 'bg-green-600 text-white hover:bg-green-700' 
+                      : 'hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400'
+                  }`}
+                >
+                  {completedCards.includes(currentIndex) ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Circle className="w-4 h-4" />
+                  )}
+                </Button>
+
+                {/* Auto Page Toggle */}
                 <Button
                   variant={autoPageTurn ? "default" : "ghost"}
-                  onClick={() => setAutoPageTurn(!autoPageTurn)}
-                  className={`${autoPageTurn 
+                  onClick={() => {
+                    setAutoPageTurn(!autoPageTurn);
+                    toast({
+                      title: autoPageTurn ? "自动翻页已关闭" : "自动翻页已开启", 
+                      description: autoPageTurn ? "停止自动翻页" : "每8秒自动翻到下一张卡片",
+                    });
+                  }}
+                  size="sm"
+                  className={`h-10 w-10 rounded-full p-0 ${autoPageTurn 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
-                  title="自动翻页 (8秒间隔)"
                 >
                   {autoPageTurn ? <Timer className="w-4 h-4" /> : <TimerOff className="w-4 h-4" />}
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowHelp(!showHelp)}
-                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-                
+                {/* Refresh Button */}
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    // Refetch new random cards
+                    audioService.stopAllAudio();
                     refetch();
                     setCurrentIndex(0);
                     setCompletedCards([]);
                     toast({
-                      title: "已刷新卡片",
-                      description: "获取新的随机10张卡片",
+                      title: "换一组",
+                      description: "已重新获取随机卡片",
                     });
                   }}
-                  className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+                  size="sm"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  换一组
+                  <RefreshCw className="w-4 h-4" />
                 </Button>
-              </div>
 
-              <Button
-                variant="ghost"
-                onClick={goToNext}
-                disabled={cards.length === 0}
-                className={`${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                下一张
-                <SkipForward className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-            <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} text-center space-y-1`}>
-              <div>滑动或按空格键翻页 • C键标记完成 • D键切换主题</div>
-              <div>
-                {autoPageTurn ? (
-                  <span className="text-blue-500 font-medium">自动翻页开启 (8秒间隔)</span>
-                ) : (
-                  "T键自动翻页 • R键换一组 • H键显示帮助"
-                )}
+                {/* Next Button */}
+                <Button
+                  variant="ghost"
+                  onClick={goToNext}
+                  size="sm"
+                  className="h-10 w-10 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Help Modal */}
+        {/* Minimal Tips */}
+        {cards.length > 0 && !showHelp && (
+          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center bg-black/20 dark:bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+              {autoPageTurn ? (
+                <span className="text-blue-400 font-medium">自动翻页中 (8秒)</span>
+              ) : (
+                "滑动翻页 • H键帮助"
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Help Button - Fixed Position */}
+        {cards.length > 0 && !showHelp && (
+          <div className="fixed top-4 right-4 z-10">
+            <Button
+              onClick={() => setShowHelp(true)}
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 rounded-full p-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-gray-300 dark:border-gray-600"
+            >
+              ?
+            </Button>
+          </div>
+        )}
+
+        {/* Simplified Help Modal */}
         {showHelp && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHelp(false)}>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-bold mb-4 dark:text-white">键盘快捷键</h3>
-              <div className="space-y-2 text-sm dark:text-gray-300">
-                <div className="flex justify-between">
-                  <span>空格键 / →</span>
-                  <span>下一张卡片</span>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowHelp(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold mb-4 dark:text-white text-center">快捷键</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm dark:text-gray-300">
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">空格/→</span>
+                  <span className="text-xs mt-1">下一张</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>←</span>
-                  <span>上一张卡片</span>
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">←</span>
+                  <span className="text-xs mt-1">上一张</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>C</span>
-                  <span>标记完成</span>
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">C</span>
+                  <span className="text-xs mt-1">完成</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>D</span>
-                  <span>切换夜间模式</span>
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">T</span>
+                  <span className="text-xs mt-1">自动翻页</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>R</span>
-                  <span>刷新卡片组</span>
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">R</span>
+                  <span className="text-xs mt-1">换一组</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>H</span>
-                  <span>显示/隐藏帮助</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>T</span>
-                  <span>自动翻页开关</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>ESC</span>
-                  <span>关闭帮助</span>
+                <div className="flex flex-col items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">D</span>
+                  <span className="text-xs mt-1">夜间模式</span>
                 </div>
               </div>
               <Button 
                 onClick={() => setShowHelp(false)} 
-                className="w-full mt-4"
+                className="w-full mt-4 h-9"
                 variant="outline"
               >
-                关闭
+                关闭 (ESC)
               </Button>
             </div>
           </div>

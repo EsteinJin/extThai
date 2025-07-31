@@ -317,6 +317,16 @@ Changelog:
   - Fixed auto-clear selection after operations (download, generate, delete)
   - Improved file management workflow with better selection control
 
+- July 30, 2025. Learning page UX overhaul:
+  - Redesigned learning interface with floating control panel
+  - Added clean mobile header with progress tracking
+  - Implemented floating circular buttons for all controls
+  - Added slim progress indicator for completed cards
+  - Created intuitive help modal with visual keyboard shortcuts
+  - Improved button positioning and accessibility
+  - Enhanced touch/swipe experience with better visual feedback
+  - Optimized card layout with max-width constraints for better readability
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
