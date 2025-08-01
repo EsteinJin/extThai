@@ -7,6 +7,7 @@ import { Navigation } from "@/components/navigation";
 import CourseSelectionPage from "@/pages/course-selection";
 import LearningPage from "@/pages/learning";
 import FileManagementPage from "@/pages/file-management";
+import CardBrowser from "@/pages/card-browser";
 import NotFound from "@/pages/not-found";
 import { AudioService } from "@/lib/audio";
 import { useEffect } from "react";
@@ -26,6 +27,9 @@ function Router() {
     <Switch>
       <Route path="/" component={CourseSelectionPage} />
       <Route path="/learning/:level?" component={LearningPage} />
+      <Route path="/cards/:level">
+        {(params) => <CardBrowser level={parseInt(params.level, 10)} />}
+      </Route>
       <Route path="/file-management">
         <div className="min-h-screen bg-gray-50">
           <Navigation />
