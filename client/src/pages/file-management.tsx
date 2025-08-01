@@ -39,6 +39,12 @@ export default function FileManagementPage() {
     queryKey: ["/api/cards", selectedLevel, "management"],
     queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()), // No random parameter for management
     enabled: isAuthenticated, // Only fetch when authenticated
+    staleTime: Infinity, // 永不过期，只有手动刷新才更新
+    gcTime: Infinity, // 永不垃圾回收
+    refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
+    refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Store uploaded card IDs for later selection
@@ -389,13 +395,14 @@ export default function FileManagementPage() {
       
       await Promise.all(deletePromises);
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
         title: "批量删除成功",
-        description: `已成功删除 ${selectedCards.size} 张卡片`,
+        description: `已成功删除 ${selectedCards.size} 张卡片，请手动刷新页面查看结果`,
       });
     } catch (error) {
       toast({
@@ -431,12 +438,21 @@ export default function FileManagementPage() {
       const successful = result.results.filter(r => r.success).length;
       const failed = result.results.filter(r => !r.success).length;
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-      
+      // 移除自动刷新，让用户手动选择是否刷新
       toast({
         title: "生成完成",
         description: `成功生成 ${successful} 张卡片的音频和图片${failed > 0 ? `，${failed} 张失败` : ''}`,
+        action: (
+          <Button
+            size="sm"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+            }}
+          >
+            刷新显示
+          </Button>
+        ),
       });
 
       // Clear selection after generation
