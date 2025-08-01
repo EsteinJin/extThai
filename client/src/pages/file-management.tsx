@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoginForm } from "@/components/login-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { stableCacheManager } from "@/lib/stable-cache";
 
 export default function FileManagementPage() {
   const { toast } = useToast();
@@ -45,6 +46,7 @@ export default function FileManagementPage() {
     refetchOnMount: false, // 组件挂载时不重新获取
     refetchOnReconnect: false, // 网络重连时不刷新
     refetchInterval: false, // 禁用定期刷新
+    notifyOnChangeProps: [], // 禁用所有状态变化通知，防止重新渲染
   });
 
   // Store uploaded card IDs for later selection
@@ -53,9 +55,9 @@ export default function FileManagementPage() {
   // Track cards count before upload to identify newly uploaded cards
   const [cardsCountBeforeUpload, setCardsCountBeforeUpload] = useState(0);
 
-  // Auto-select only newly uploaded cards
+  // Auto-select only newly uploaded cards - 使用更稳定的依赖关系
   useEffect(() => {
-    if (cards.length > 0 && uploadSuccess && cardsCountBeforeUpload >= 0) {
+    if (uploadSuccess && cardsCountBeforeUpload >= 0 && cards.length > cardsCountBeforeUpload) {
       // Only select cards that were added after the previous count
       const newlyUploadedCards = cards.slice(cardsCountBeforeUpload);
       const newCardIds = new Set(newlyUploadedCards.map(card => card.id));
@@ -66,7 +68,7 @@ export default function FileManagementPage() {
       // Clear highlight after 10 seconds
       setTimeout(() => setUploadedCardIds(new Set()), 10000);
     }
-  }, [cards, uploadSuccess, cardsCountBeforeUpload]);
+  }, [uploadSuccess]); // 只依赖uploadSuccess，避免cards变化导致重新渲染
 
 
 
@@ -357,8 +359,9 @@ export default function FileManagementPage() {
     try {
       await apiRequest("/api/cards/clear", "DELETE");
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
@@ -430,8 +433,13 @@ export default function FileManagementPage() {
       return;
     }
 
+    // 添加刷新阻塞器，防止音频生成过程中页面刷新
+    stableCacheManager.addRefreshBlocker("audio-generation");
     setIsGenerating(true);
+    
     try {
+      console.log("🎵 开始生成音频，页面已锁定防止刷新");
+      
       const result = await apiRequest("/api/cards/generate", "POST", {
         cardIds: Array.from(selectedCards)
       }) as { success: boolean; results: any[] };
@@ -439,7 +447,7 @@ export default function FileManagementPage() {
       const successful = result.results.filter(r => r.success).length;
       const failed = result.results.filter(r => !r.success).length;
 
-      // 移除自动刷新，让用户手动选择是否刷新
+      // 音频生成完成，绝对不自动刷新页面
       toast({
         title: "生成完成",
         description: `成功生成 ${successful} 张卡片的音频和图片${failed > 0 ? `，${failed} 张失败` : ''}`,
@@ -447,11 +455,13 @@ export default function FileManagementPage() {
           <Button
             size="sm"
             onClick={() => {
+              // 用户手动选择刷新时才更新数据
               queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
               queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+              toast({ title: "数据已更新" });
             }}
           >
-            刷新显示
+            手动刷新
           </Button>
         ),
       });
@@ -468,6 +478,9 @@ export default function FileManagementPage() {
       });
     } finally {
       setIsGenerating(false);
+      // 移除刷新阻塞器
+      stableCacheManager.removeRefreshBlocker("audio-generation");
+      console.log("🔓 音频生成完成，页面解锁");
     }
   };
 
@@ -478,6 +491,7 @@ export default function FileManagementPage() {
         <div className="absolute top-0 right-0 flex items-center gap-2">
           <Button
             onClick={() => {
+              // 手动刷新按钮 - 用户主动触发
               queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
               queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
               toast({

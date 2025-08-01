@@ -58,6 +58,7 @@ export const queryClient = new QueryClient({
       staleTime: Infinity,
       gcTime: Infinity,
       retry: false,
+      notifyOnChangeProps: [], // 全局禁用状态变化通知
     },
     mutations: {
       retry: false,
