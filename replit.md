@@ -9,6 +9,8 @@ Deployment preference: Aliyun cloud deployment.
 Font preference: Standard Thai fonts only, no artistic fonts.
 File management: Accessible via direct link, not in main menu.
 Features prioritized: Keyboard shortcuts, gestures, batch editing, search, night mode, cloud sync.
+UX priorities: Minimize page refreshes, stable browsing experience, visual card browsing with thumbnails.
+Navigation preference: Card browser return button should go to homepage instead of course selection.
 
 ## System Architecture
 
@@ -35,10 +37,11 @@ Features prioritized: Keyboard shortcuts, gestures, batch editing, search, night
 ### Key Features & Design Choices
 - **Data Flow**: JSON file upload, server-side validation (Zod), SQLite storage via Drizzle, REST API for retrieval, interactive learning interface.
 - **Learning Interface**: Interactive flashcards with flip animations, keyboard shortcuts, touch/swipe gestures, auto-play audio, dark mode, random card sampling (max 10 per session), "Change Set" button.
+- **Card Browsing**: New thumbnail grid view for visual card browsing. Mixed display format (Thai word + Chinese translation + example preview). Click-to-expand detail view with full audio support. Optimized caching to prevent unwanted page refreshes.
 - **Progress Tracking**: Local storage-based progress tracking per level, visual indicators, completion marking, session persistence (24-hour retention).
 - **Resource Generation**: Backend API for generating word audio (using Browser Speech Synthesis API) and SVG-based card images. Prioritizes generated audio over external TTS.
-- **File Management**: Bulk JSON upload (accumulative/append), search, card management (edit/delete individual cards), selective download.
-- **UX/UI Decisions**: Redesigned learning interface with floating control panel, slim progress indicator, circular buttons, interactive help modal with shortcut references. Optimized for mobile responsiveness (flashcard size, compact layouts).
+- **File Management**: Bulk JSON upload (accumulative/append), search, card management (edit/delete individual cards), selective download. New uploaded files highlighted, auto-selected, and top-positioned.
+- **UX/UI Decisions**: Redesigned learning interface with floating control panel, slim progress indicator, circular buttons, interactive help modal with shortcut references. Added card browser with responsive grid layout. Optimized for mobile responsiveness (flashcard size, compact layouts).
 - **API Endpoints**: `GET /api/cards`, `POST /api/cards/upload`, `/api/cards/generate`, `/api/audio/generated`.
 
 ## External Dependencies
