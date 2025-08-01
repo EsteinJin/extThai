@@ -411,15 +411,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve generated audio files
+  // Serve generated audio files with improved debugging
   app.get("/api/audio/generated/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
       const audioPath = path.join(process.cwd(), "generated", "audio", filename);
       
+      console.log(`🔍 Audio request: ${filename}`);
+      console.log(`🔍 Full path: ${audioPath}`);
+      
       const exists = await fs.access(audioPath).then(() => true).catch(() => false);
       if (!exists) {
-        return res.status(404).json({ error: "Audio file not found" });
+        // List available files for debugging
+        const audioDir = path.join(process.cwd(), "generated", "audio");
+        try {
+          const files = await fs.readdir(audioDir);
+          const mp3Files = files.filter(f => f.endsWith('.mp3')).slice(0, 5);
+          console.log(`❌ File not found. Available files: ${mp3Files.join(', ')}`);
+        } catch (e) {
+          console.log(`❌ Cannot read audio directory: ${e}`);
+        }
+        return res.status(404).json({ error: "Generated audio file not found", requested: filename });
       }
       
       // Check if it's a JSON metadata file or actual audio
@@ -427,8 +439,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader("Content-Type", "application/json");
       } else {
         res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        res.setHeader("Accept-Ranges", "bytes");
       }
+      
       const fileStream = await fs.readFile(audioPath);
+      console.log(`✅ Serving audio: ${filename} (${fileStream.length} bytes)`);
       res.send(fileStream);
       
     } catch (error) {

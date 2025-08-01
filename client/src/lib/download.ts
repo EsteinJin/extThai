@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { audioService } from "./audio";
+// Remove audioService import since we're downloading existing files
 import { Card } from "@shared/schema";
 import html2canvas from "html2canvas";
 
@@ -31,7 +31,7 @@ export class DownloadService {
       throw new Error("Failed to create ZIP folders");
     }
 
-    const totalItems = cards.length * 2; // 1 image + 1 example audio per card
+    const totalItems = cards.length * 2; // 1 image + audio files per card
     let completedItems = 0;
 
     const updateProgress = (status: string) => {
@@ -54,21 +54,30 @@ export class DownloadService {
         completedItems++;
         updateProgress(`完成卡片 ${index + 1} 图片`);
 
-        // Generate example audio only (skip word audio)
-        updateProgress(`生成卡片 ${index + 1} 例句语音...`);
+        // Download existing audio files from server instead of generating new ones
+        updateProgress(`下载卡片 ${index + 1} 音频文件...`);
         try {
-          const exampleAudioUrl = await audioService.generateAudio(card.example, "th-TH");
-          if (exampleAudioUrl) {
-            const audioResponse = await fetch(exampleAudioUrl, {
-              credentials: 'include'
-            });
-            if (audioResponse.ok) {
-              const audioBlob = await audioResponse.blob();
-              audioFolder.file(`card_${index + 1}_example_${card.thai}.mp3`, audioBlob);
+          // Download word audio if it exists
+          if (card.word_audio) {
+            const wordAudioUrl = `/api/audio/${card.word_audio}`;
+            const wordResponse = await fetch(wordAudioUrl);
+            if (wordResponse.ok) {
+              const wordBlob = await wordResponse.blob();
+              audioFolder.file(`card_${index + 1}_word_${card.thai}.mp3`, wordBlob);
+            }
+          }
+          
+          // Download example audio if it exists
+          if (card.example_audio) {
+            const exampleAudioUrl = `/api/audio/${card.example_audio}`;
+            const exampleResponse = await fetch(exampleAudioUrl);
+            if (exampleResponse.ok) {
+              const exampleBlob = await exampleResponse.blob();
+              audioFolder.file(`card_${index + 1}_example_${card.thai}.mp3`, exampleBlob);
             }
           }
         } catch (error) {
-          console.error(`Failed to generate example audio for card ${index + 1}:`, error);
+          console.error(`Failed to download audio files for card ${index + 1}:`, error);
         }
         completedItems++;
       }

@@ -44,17 +44,23 @@ export default function FileManagementPage() {
   // Store uploaded card IDs for later selection
   const [uploadedCardIds, setUploadedCardIds] = useState<Set<number>>(new Set());
 
-  // Auto-select all cards when cards data changes (after upload)
+  // Track cards count before upload to identify newly uploaded cards
+  const [cardsCountBeforeUpload, setCardsCountBeforeUpload] = useState(0);
+
+  // Auto-select only newly uploaded cards
   useEffect(() => {
-    if (cards.length > 0 && uploadSuccess) {
-      // Store the IDs of newly uploaded cards
-      const newCardIds = new Set(cards.map(card => card.id));
+    if (cards.length > 0 && uploadSuccess && cardsCountBeforeUpload >= 0) {
+      // Only select cards that were added after the previous count
+      const newlyUploadedCards = cards.slice(cardsCountBeforeUpload);
+      const newCardIds = new Set(newlyUploadedCards.map(card => card.id));
       setUploadedCardIds(newCardIds);
       setSelectedCards(newCardIds);
       // Reset upload success flag after auto-selection
       setTimeout(() => setUploadSuccess(false), 1000);
+      // Clear highlight after 10 seconds
+      setTimeout(() => setUploadedCardIds(new Set()), 10000);
     }
-  }, [cards, uploadSuccess]);
+  }, [cards, uploadSuccess, cardsCountBeforeUpload]);
 
 
 
@@ -78,12 +84,22 @@ export default function FileManagementPage() {
     return <LoginForm onLogin={setIsAuthenticated} />;
   }
 
-  // Filter cards based on search term
-  const filteredCards = cards.filter(card => 
-    card.thai.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    card.chinese.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    card.pronunciation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter and sort cards - newly uploaded cards first, then by search term
+  const filteredCards = cards
+    .filter(card => 
+      card.thai.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      card.chinese.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      card.pronunciation.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort newly uploaded cards to the top
+      const aIsNew = uploadedCardIds.has(a.id);
+      const bIsNew = uploadedCardIds.has(b.id);
+      
+      if (aIsNew && !bIsNew) return -1;
+      if (!aIsNew && bIsNew) return 1;
+      return 0; // Keep original order for cards of the same type
+    });
 
   const handleBatchDownload = async () => {
     const cardsToDownload = selectedCards.size > 0 
@@ -203,6 +219,9 @@ export default function FileManagementPage() {
 
     try {
       setIsUploading(true);
+      
+      // Store current cards count before upload
+      setCardsCountBeforeUpload(cards.length);
       
       // Read file content and add level to each card
       const fileContent = await selectedFile.text();
@@ -633,9 +652,9 @@ export default function FileManagementPage() {
                         onClick={handleSelectUploaded}
                         variant="outline"
                         size="sm"
-                        className="text-xs h-8"
+                        className="text-xs h-8 bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
                       >
-                        选择上传卡片 ({uploadedCardIds.size})
+                        选择新上传卡片 ({uploadedCardIds.size})
                       </Button>
                     )}
                   </div>
@@ -717,8 +736,20 @@ export default function FileManagementPage() {
 
             {/* Cards List */}
             <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredCards.map((card, index) => (
-                  <div key={card.id} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                {filteredCards.map((card, index) => {
+                  const isNewlyUploaded = uploadedCardIds.has(card.id);
+                  return (
+                  <div 
+                    key={card.id} 
+                    className={`flex items-center gap-3 p-4 rounded-lg transition-all duration-300 ${
+                      isNewlyUploaded 
+                        ? "bg-emerald-50 border-2 border-emerald-200 shadow-md" 
+                        : "bg-gray-50 border border-transparent"
+                    }`}
+                  >
+                    {isNewlyUploaded && (
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    )}
                     <Checkbox
                       id={`card-${card.id}`}
                       checked={selectedCards.has(card.id)}
@@ -729,6 +760,11 @@ export default function FileManagementPage() {
                         <span className="text-2xl" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.thai}</span>
                         <span className="text-gray-600">{card.chinese}</span>
                         <span className="text-sm text-gray-500">({card.pronunciation})</span>
+                        {isNewlyUploaded && (
+                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                            新上传
+                          </span>
+                        )}
                       </div>
                       {card.example && (
                         <p className="text-sm text-gray-500 mt-1" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.example}</p>
@@ -753,7 +789,8 @@ export default function FileManagementPage() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
             </div>
             </>
           ) : (
