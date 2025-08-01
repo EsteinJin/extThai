@@ -30,8 +30,12 @@ export default function LearningPage() {
   const { data: cards = [], isLoading, refetch } = useQuery<Card[]>({
     queryKey: ["/api/cards", level, "random"],
     queryFn: () => fetch(`/api/cards?level=${level}&random=true&limit=10`).then(res => res.json()),
-    staleTime: 2 * 60 * 1000, // 学习页面2分钟内不自动刷新
+    staleTime: Infinity, // 永不过期，避免意外刷新
+    gcTime: Infinity, // 永不垃圾回收
     refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
+    refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Load progress when cards are loaded

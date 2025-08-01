@@ -46,13 +46,16 @@ const courses = [
 ];
 
 export default function CourseSelectionPage() {
-  // Get cards data to calculate progress with stable caching
+  // Get cards data to calculate progress with stable caching to prevent auto-refresh
   const { data: allCards = [] } = useQuery<CardType[]>({
     queryKey: ["/api/cards"],
     queryFn: () => fetch("/api/cards").then(res => res.json()),
-    staleTime: 15 * 60 * 1000, // 15分钟内不重新获取
+    staleTime: Infinity, // 永不过期，避免意外刷新
+    gcTime: Infinity, // 永不垃圾回收
     refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
     refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Get progress for each level

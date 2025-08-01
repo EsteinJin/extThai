@@ -10,6 +10,7 @@ Font preference: Standard Thai fonts only, no artistic fonts.
 File management: Accessible via direct link, not in main menu.
 Features prioritized: Keyboard shortcuts, gestures, batch editing, search, night mode, cloud sync.
 UX priorities: Minimize page refreshes, stable browsing experience, visual card browsing with thumbnails.
+Navigation preference: Card browser return button should go to homepage instead of course selection.
 
 ## System Architecture
 

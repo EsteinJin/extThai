@@ -30,13 +30,16 @@ export default function CardBrowser({ level }: CardBrowserProps) {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch cards for the selected level with optimized caching
+  // Fetch cards for the selected level with stable caching to prevent auto-refresh
   const { data: cards = [], isLoading } = useQuery<CardData[]>({
     queryKey: ["/api/cards", level],
     enabled: level > 0,
-    staleTime: 10 * 60 * 1000, // 10分钟内不重新获取
+    staleTime: Infinity, // 永不过期，避免意外刷新
+    gcTime: Infinity, // 永不垃圾回收
     refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
     refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Handle scroll for back-to-top button
@@ -107,8 +110,8 @@ export default function CardBrowser({ level }: CardBrowserProps) {
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
             <p className="text-gray-600 dark:text-gray-300 mb-4">基础泰语{level} 暂无学习卡片</p>
-            <Link href="/learning">
-              <Button variant="outline">返回课程选择</Button>
+            <Link href="/">
+              <Button variant="outline">返回首页</Button>
             </Link>
           </div>
         </div>
@@ -123,10 +126,10 @@ export default function CardBrowser({ level }: CardBrowserProps) {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/learning">
+              <Link href="/">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  返回课程
+                  返回首页
                 </Button>
               </Link>
               <Badge variant="secondary" className="text-sm">

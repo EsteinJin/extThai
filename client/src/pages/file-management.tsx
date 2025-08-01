@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2 } from "lucide-react";
+import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
@@ -177,8 +177,9 @@ export default function FileManagementPage() {
     try {
       await apiRequest(`/api/cards/${cardId}`, "DELETE");
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       // Remove from selected cards if it was selected
       const newSelected = new Set(selectedCards);
@@ -187,7 +188,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "删除成功",
-        description: "卡片已被删除",
+        description: "卡片已被删除，请手动刷新页面查看结果",
       });
     } catch (error) {
       toast({
@@ -257,9 +258,9 @@ export default function FileManagementPage() {
 
       const result = await response.json();
       
-      // Invalidate cards cache to refresh the data
-      await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       setUploadSuccess(true);
       setSelectedFile(null);
@@ -271,7 +272,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "上传成功",
-        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}`,
+        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}，请手动刷新页面查看新卡片`,
       });
 
       // Store uploaded card count for later reference
@@ -474,15 +475,33 @@ export default function FileManagementPage() {
     <div className="max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="text-center mb-12 relative">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          size="sm"
-          className="absolute top-0 right-0 flex items-center gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          退出登录
-        </Button>
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          <Button
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+              toast({
+                title: "刷新完成",
+                description: "数据已更新"
+              });
+            }}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            手动刷新
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            退出登录
+          </Button>
+        </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">文件管理</h2>
         <p className="text-lg text-gray-600">上传JSON文件来管理您的泰语学习卡片</p>
       </div>
