@@ -39,8 +39,7 @@ export default function FileManagementPage() {
     queryKey: ["/api/cards", selectedLevel, "management"],
     queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()), // No random parameter for management
     enabled: isAuthenticated, // Only fetch when authenticated
-    staleTime: Infinity, // 永不过期，只有手动刷新才更新
-    gcTime: Infinity, // 永不垃圾回收
+    staleTime: 5 * 60 * 1000, // 5分钟缓存，避免过度刷新
     refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
     refetchOnMount: false, // 组件挂载时不重新获取
     refetchOnReconnect: false, // 网络重连时不刷新
@@ -177,9 +176,9 @@ export default function FileManagementPage() {
     try {
       await apiRequest(`/api/cards/${cardId}`, "DELETE");
 
-      // 移除自动刷新，避免页面重载
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 删除后自动刷新数据
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       // Remove from selected cards if it was selected
       const newSelected = new Set(selectedCards);
@@ -188,7 +187,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "删除成功",
-        description: "卡片已被删除，请手动刷新页面查看结果",
+        description: "卡片已被删除",
       });
     } catch (error) {
       toast({
@@ -258,9 +257,9 @@ export default function FileManagementPage() {
 
       const result = await response.json();
       
-      // 移除自动刷新，避免页面重载
-      // await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 上传成功后自动刷新数据
+      await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       setUploadSuccess(true);
       setSelectedFile(null);
@@ -272,7 +271,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "上传成功",
-        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}，请手动刷新页面查看新卡片`,
+        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}`,
       });
 
       // Store uploaded card count for later reference
@@ -396,14 +395,14 @@ export default function FileManagementPage() {
       
       await Promise.all(deletePromises);
 
-      // 移除自动刷新，避免页面重载
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 批量删除后自动刷新数据
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
         title: "批量删除成功",
-        description: `已成功删除 ${selectedCards.size} 张卡片，请手动刷新页面查看结果`,
+        description: `已成功删除 ${selectedCards.size} 张卡片`,
       });
     } catch (error) {
       toast({
@@ -439,21 +438,13 @@ export default function FileManagementPage() {
       const successful = result.results.filter(r => r.success).length;
       const failed = result.results.filter(r => !r.success).length;
 
-      // 移除自动刷新，让用户手动选择是否刷新
+      // 生成完成后自动刷新数据
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      
       toast({
         title: "生成完成",
         description: `成功生成 ${successful} 张卡片的音频和图片${failed > 0 ? `，${failed} 张失败` : ''}`,
-        action: (
-          <Button
-            size="sm"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-            }}
-          >
-            刷新显示
-          </Button>
-        ),
       });
 
       // Clear selection after generation

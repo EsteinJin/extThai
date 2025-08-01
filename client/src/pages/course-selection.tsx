@@ -50,8 +50,7 @@ export default function CourseSelectionPage() {
   const { data: allCards = [] } = useQuery<CardType[]>({
     queryKey: ["/api/cards"],
     queryFn: () => fetch("/api/cards").then(res => res.json()),
-    staleTime: Infinity, // 永不过期，避免意外刷新
-    gcTime: Infinity, // 永不垃圾回收
+    staleTime: 15 * 60 * 1000, // 15分钟缓存，避免过度刷新
     refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
     refetchOnMount: false, // 组件挂载时不重新获取
     refetchOnReconnect: false, // 网络重连时不刷新

@@ -55,8 +55,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: Infinity,
-      gcTime: Infinity,
+      staleTime: 5 * 60 * 1000, // 5分钟缓存，避免过度刷新
       retry: false,
     },
     mutations: {
