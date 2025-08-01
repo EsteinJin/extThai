@@ -189,101 +189,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Generate audio using soundoftext.com API
-  app.post("/api/audio/generate", async (req, res) => {
-    try {
-      const { text, language = "th-TH" } = req.body;
-      
-      if (!text) {
-        return res.status(400).json({ error: "Text is required" });
-      }
+  // Remove old SoundofText generation endpoint - we now generate files locally
 
-      // Convert language code to proper format for soundoftext API
-      const voiceCode = language === "th" ? "th-TH" : language;
-
-      // Make request to soundoftext.com API
-      const response = await fetch("https://api.soundoftext.com/sounds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          engine: "Google",
-          data: {
-            text: text,
-            voice: voiceCode
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API returned ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      res.json({ success: result.success, id: result.id });
-    } catch (error: any) {
-      console.error("Audio generation error:", error);
-      res.status(500).json({ error: "Failed to generate audio", details: error.message });
-    }
-  });
-
-  // Get audio file status
-  app.get("/api/audio/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      
-      const response = await fetch(`https://api.soundoftext.com/sounds/${id}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`SoundOfText status API error: ${response.status} - ${errorText}`);
-        throw new Error(`Failed to get audio status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      res.json(result);
-    } catch (error: any) {
-      console.error("Audio status error:", error);
-      res.status(500).json({ error: "Failed to get audio status", details: error.message });
-    }
-  });
-
-  // Proxy audio file download to bypass CORS
-  app.get("/api/audio/download/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      
-      // First get the audio status to check if it's ready
-      const statusResponse = await fetch(`https://api.soundoftext.com/sounds/${id}`);
-      if (!statusResponse.ok) {
-        throw new Error("Failed to get audio status");
-      }
-      
-      const status = await statusResponse.json();
-      if (status.status !== "Done" || !status.location) {
-        return res.status(404).json({ error: "Audio not ready or not found" });
-      }
-
-      // Download the audio file
-      const audioResponse = await fetch(status.location);
-      if (!audioResponse.ok) {
-        throw new Error("Failed to download audio file");
-      }
-
-      // Set appropriate headers
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Disposition', `attachment; filename="${id}.mp3"`);
-      
-      // Pipe the audio data to the response
-      const audioBuffer = await audioResponse.arrayBuffer();
-      res.send(Buffer.from(audioBuffer));
-    } catch (error: any) {
-      console.error("Audio download error:", error);
-      res.status(500).json({ error: "Failed to download audio file" });
-    }
-  });
+  // Remove old SoundofText routes - we now serve local files only
 
   // Delete a single card
   app.delete("/api/cards/:id", async (req, res) => {
@@ -373,28 +281,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Generate new audio files
-          const wordAudioPath = await generateAudio(card.thai, `word_${cardId}_${Date.now()}.mp3`);
-          const exampleAudioPath = await generateAudio(card.example, `example_${cardId}_${Date.now()}.mp3`);
+          // Generate new audio files with better error handling
+          let wordAudioPath = null;
+          let exampleAudioPath = null;
+          let wordError = null;
+          let exampleError = null;
+          
+          try {
+            wordAudioPath = await generateAudio(card.thai, `word_${cardId}_${Date.now()}.mp3`);
+          } catch (error) {
+            wordError = String(error);
+            console.error(`Failed to generate word audio for card ${cardId}:`, error);
+          }
+          
+          try {
+            exampleAudioPath = await generateAudio(card.example, `example_${cardId}_${Date.now()}.mp3`);
+          } catch (error) {
+            exampleError = String(error);
+            console.error(`Failed to generate example audio for card ${cardId}:`, error);
+          }
           
           // Generate card image
           const cardImagePath = await generateCardImage(card, `card_${cardId}_${Date.now()}.svg`);
           
-          // Update card with new file paths
-          await storage.updateCard(cardId, {
-            word_audio: wordAudioPath,
-            example_audio: exampleAudioPath,
-            card_image: cardImagePath
-          });
+          // Update card with new file paths (only if generation was successful)
+          const updateData: any = { card_image: cardImagePath };
+          if (wordAudioPath) updateData.word_audio = wordAudioPath;
+          if (exampleAudioPath) updateData.example_audio = exampleAudioPath;
           
-          console.log(`✅ Updated card ${cardId} with new audio files: ${wordAudioPath}, ${exampleAudioPath}`);
+          await storage.updateCard(cardId, updateData);
+          
+          const errors = [];
+          if (wordError) errors.push(`Word audio: ${wordError}`);
+          if (exampleError) errors.push(`Example audio: ${exampleError}`);
+          
+          console.log(`✅ Updated card ${cardId} - Word: ${wordAudioPath || 'FAILED'}, Example: ${exampleAudioPath || 'FAILED'}`);
           
           results.push({ 
             cardId, 
-            success: true, 
+            success: !wordError && !exampleError, // Success only if both audio files generated
             wordAudio: wordAudioPath,
             exampleAudio: exampleAudioPath,
-            cardImage: cardImagePath
+            cardImage: cardImagePath,
+            errors: errors.length > 0 ? errors : undefined
           });
           
         } catch (error) {
@@ -411,40 +340,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve generated audio files with improved debugging
-  app.get("/api/audio/generated/:filename", async (req, res) => {
+  // Direct audio file download - serve existing files only
+  app.get("/api/audio/:filepath(*)", async (req, res) => {
     try {
-      const { filename } = req.params;
+      const { filepath } = req.params;
+      console.log(`🎵 Direct audio request: ${filepath}`);
+      
+      // Extract filename from path (remove "generated/audio/" prefix if present)
+      const filename = filepath.replace(/^generated\/audio\//, '');
       const audioPath = path.join(process.cwd(), "generated", "audio", filename);
       
-      console.log(`🔍 Audio request: ${filename}`);
-      console.log(`🔍 Full path: ${audioPath}`);
+      console.log(`🔍 Looking for audio file: ${audioPath}`);
       
       const exists = await fs.access(audioPath).then(() => true).catch(() => false);
       if (!exists) {
-        // List available files for debugging
-        const audioDir = path.join(process.cwd(), "generated", "audio");
-        try {
-          const files = await fs.readdir(audioDir);
-          const mp3Files = files.filter(f => f.endsWith('.mp3')).slice(0, 5);
-          console.log(`❌ File not found. Available files: ${mp3Files.join(', ')}`);
-        } catch (e) {
-          console.log(`❌ Cannot read audio directory: ${e}`);
-        }
-        return res.status(404).json({ error: "Generated audio file not found", requested: filename });
+        console.log(`❌ Audio file not found: ${filename}`);
+        return res.status(404).json({ 
+          error: "音频文件不存在", 
+          message: "请先生成音频文件后再下载",
+          requested: filename 
+        });
       }
       
-      // Check if it's a JSON metadata file or actual audio
-      if (filename.endsWith('.json')) {
-        res.setHeader("Content-Type", "application/json");
-      } else {
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Cache-Control", "public, max-age=86400");
-        res.setHeader("Accept-Ranges", "bytes");
+      // Check file size to avoid serving tiny/corrupted files
+      const stats = await fs.stat(audioPath);
+      if (stats.size < 1000) { // Less than 1KB is probably not a valid audio file
+        console.log(`⚠️ Audio file too small: ${filename} (${stats.size} bytes)`);
+        return res.status(404).json({ 
+          error: "音频文件无效", 
+          message: "音频文件损坏或未正确生成，请重新生成",
+          size: stats.size 
+        });
       }
+      
+      // Set headers for audio download
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", stats.size.toString());
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Cache-Control", "public, max-age=86400");
       
       const fileStream = await fs.readFile(audioPath);
-      console.log(`✅ Serving audio: ${filename} (${fileStream.length} bytes)`);
+      console.log(`✅ Serving audio file: ${filename} (${fileStream.length} bytes)`);
       res.send(fileStream);
       
     } catch (error) {
@@ -485,63 +421,67 @@ async function generateAudio(text: string, filename: string): Promise<string> {
     const audioDir = path.join(process.cwd(), "generated", "audio");
     await fs.mkdir(audioDir, { recursive: true });
     
-    console.log(`🎵 Generating high-quality audio for: ${text}`);
+    console.log(`🎵 Generating high-quality audio for: "${text}"`);
     
-    try {
-      // Try SoundofText API first for better quality
-      const generateResponse = await fetch('https://api.soundoftext.com/sounds', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          engine: 'Google',
-          data: {
-            text: text,
-            voice: 'th-TH'
-          }
-        })
-      });
-
-      if (generateResponse.ok) {
-        const result = await generateResponse.json();
+    // Try SoundofText API with improved error handling and retries
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`🔄 Attempt ${attempt}/3 for SoundofText API`);
         
-        if (result.success && result.id) {
-          // Poll for completion
-          const audioUrl = await pollForAudioCompletion(result.id);
+        const generateResponse = await fetch('https://api.soundoftext.com/sounds', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            engine: 'Google',
+            data: {
+              text: text,
+              voice: 'th-TH'
+            }
+          })
+        });
+
+        if (generateResponse.ok) {
+          const result = await generateResponse.json();
+          console.log(`📝 SoundofText response:`, result);
           
-          if (audioUrl) {
-            // Download and save the audio file
-            const audioResponse = await fetch(audioUrl);
-            if (audioResponse.ok) {
-              const audioBuffer = await audioResponse.arrayBuffer();
-              const audioPath = path.join(audioDir, filename);
-              await fs.writeFile(audioPath, Buffer.from(audioBuffer));
-              
-              console.log(`✅ Generated high-quality audio: ${filename}`);
-              return `generated/audio/${filename}`;
+          if (result.success && result.id) {
+            // Poll for completion with longer timeout
+            const audioUrl = await pollForAudioCompletion(result.id, 20);
+            
+            if (audioUrl) {
+              // Download and save the audio file
+              const audioResponse = await fetch(audioUrl);
+              if (audioResponse.ok) {
+                const audioBuffer = await audioResponse.arrayBuffer();
+                
+                // Verify we got actual audio data
+                if (audioBuffer.byteLength > 1000) { // At least 1KB for valid audio
+                  const audioPath = path.join(audioDir, filename);
+                  await fs.writeFile(audioPath, Buffer.from(audioBuffer));
+                  
+                  console.log(`✅ Generated high-quality audio: ${filename} (${audioBuffer.byteLength} bytes)`);
+                  return `generated/audio/${filename}`;
+                } else {
+                  console.warn(`⚠️  Audio file too small: ${audioBuffer.byteLength} bytes`);
+                }
+              }
             }
           }
+        } else {
+          console.warn(`❌ SoundofText API failed: ${generateResponse.status} ${generateResponse.statusText}`);
+        }
+      } catch (apiError) {
+        console.warn(`❌ SoundofText API attempt ${attempt} failed:`, apiError);
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
         }
       }
-    } catch (apiError) {
-      console.warn(`🔄 SoundofText API failed for "${text}", creating fallback metadata`);
     }
     
-    // Fallback: Create metadata file for client-side TTS
-    const metadataContent = JSON.stringify({
-      text: text,
-      language: "th-TH",
-      timestamp: Date.now(),
-      useClientTTS: true,
-      fallback: true
-    });
-    
-    const metadataPath = path.join(audioDir, filename.replace('.mp3', '.json'));
-    await fs.writeFile(metadataPath, metadataContent);
-    
-    console.log(`✅ Created fallback TTS metadata: ${filename.replace('.mp3', '.json')}`);
-    return `generated/audio/${filename.replace('.mp3', '.json')}`;
+    // If all attempts failed, throw an error instead of creating fallback
+    throw new Error(`Failed to generate audio for "${text}" after 3 attempts`);
     
   } catch (error) {
     console.error("Error generating audio:", error);

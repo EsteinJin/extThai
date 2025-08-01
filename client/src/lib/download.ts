@@ -54,30 +54,52 @@ export class DownloadService {
         completedItems++;
         updateProgress(`完成卡片 ${index + 1} 图片`);
 
-        // Download existing audio files from server instead of generating new ones
-        updateProgress(`下载卡片 ${index + 1} 音频文件...`);
+        // Download existing audio files from server - only add if they exist and are valid
+        updateProgress(`检查卡片 ${index + 1} 音频文件...`);
         try {
           // Download word audio if it exists
           if (card.word_audio) {
-            const wordAudioUrl = `/api/audio/${card.word_audio}`;
-            const wordResponse = await fetch(wordAudioUrl);
-            if (wordResponse.ok) {
-              const wordBlob = await wordResponse.blob();
-              audioFolder.file(`card_${index + 1}_word_${card.thai}.mp3`, wordBlob);
+            try {
+              const wordAudioUrl = `/api/audio/${card.word_audio}`;
+              const wordResponse = await fetch(wordAudioUrl);
+              if (wordResponse.ok) {
+                const wordBlob = await wordResponse.blob();
+                if (wordBlob.size > 1000) { // Only include valid audio files
+                  audioFolder.file(`card_${index + 1}_word_${card.thai}.mp3`, wordBlob);
+                  console.log(`✅ Downloaded word audio for card ${index + 1}`);
+                } else {
+                  console.warn(`⚠️ Word audio too small for card ${index + 1}: ${wordBlob.size} bytes`);
+                }
+              } else {
+                console.warn(`❌ Word audio not found for card ${index + 1}: ${wordResponse.status}`);
+              }
+            } catch (error) {
+              console.error(`Failed to download word audio for card ${index + 1}:`, error);
             }
           }
           
           // Download example audio if it exists
           if (card.example_audio) {
-            const exampleAudioUrl = `/api/audio/${card.example_audio}`;
-            const exampleResponse = await fetch(exampleAudioUrl);
-            if (exampleResponse.ok) {
-              const exampleBlob = await exampleResponse.blob();
-              audioFolder.file(`card_${index + 1}_example_${card.thai}.mp3`, exampleBlob);
+            try {
+              const exampleAudioUrl = `/api/audio/${card.example_audio}`;
+              const exampleResponse = await fetch(exampleAudioUrl);
+              if (exampleResponse.ok) {
+                const exampleBlob = await exampleResponse.blob();
+                if (exampleBlob.size > 1000) { // Only include valid audio files
+                  audioFolder.file(`card_${index + 1}_example_${card.thai}.mp3`, exampleBlob);
+                  console.log(`✅ Downloaded example audio for card ${index + 1}`);
+                } else {
+                  console.warn(`⚠️ Example audio too small for card ${index + 1}: ${exampleBlob.size} bytes`);
+                }
+              } else {
+                console.warn(`❌ Example audio not found for card ${index + 1}: ${exampleResponse.status}`);
+              }
+            } catch (error) {
+              console.error(`Failed to download example audio for card ${index + 1}:`, error);
             }
           }
         } catch (error) {
-          console.error(`Failed to download audio files for card ${index + 1}:`, error);
+          console.error(`Failed to process audio files for card ${index + 1}:`, error);
         }
         completedItems++;
       }
