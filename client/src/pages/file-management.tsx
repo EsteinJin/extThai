@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2, RotateCcw } from "lucide-react";
+import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoginForm } from "@/components/login-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { blockReloads, unblockReloads, forceReload } from "@/lib/prevent-reload";
 
 export default function FileManagementPage() {
   const { toast } = useToast();
@@ -38,41 +37,24 @@ export default function FileManagementPage() {
   // Always call hooks first, before any conditional returns
   const { data: cards = [] } = useQuery<CardType[]>({
     queryKey: ["/api/cards", selectedLevel, "management"],
-    queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()),
-    enabled: isAuthenticated,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false, 
-    refetchOnReconnect: false,
-    refetchInterval: false,
-    notifyOnChangeProps: [],
-    networkMode: 'always', // 使用always模式确保稳定性
+    queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()), // No random parameter for management
+    enabled: isAuthenticated, // Only fetch when authenticated
   });
 
   // Store uploaded card IDs for later selection
   const [uploadedCardIds, setUploadedCardIds] = useState<Set<number>>(new Set());
 
-  // Track cards count before upload to identify newly uploaded cards
-  const [cardsCountBeforeUpload, setCardsCountBeforeUpload] = useState(0);
-
-  // 简化自动选择逻辑，避免复杂的useEffect依赖
+  // Auto-select all cards when cards data changes (after upload)
   useEffect(() => {
-    if (uploadSuccess) {
-      // 延迟执行以确保数据已更新
-      const timer = setTimeout(() => {
-        if (cards.length > cardsCountBeforeUpload) {
-          const newlyUploadedCards = cards.slice(cardsCountBeforeUpload);
-          const newCardIds = new Set(newlyUploadedCards.map(card => card.id));
-          setUploadedCardIds(newCardIds);
-          setSelectedCards(newCardIds);
-        }
-        setUploadSuccess(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
+    if (cards.length > 0 && uploadSuccess) {
+      // Store the IDs of newly uploaded cards
+      const newCardIds = new Set(cards.map(card => card.id));
+      setUploadedCardIds(newCardIds);
+      setSelectedCards(newCardIds);
+      // Reset upload success flag after auto-selection
+      setTimeout(() => setUploadSuccess(false), 1000);
     }
-  }, [uploadSuccess]);
+  }, [cards, uploadSuccess]);
 
 
 
@@ -96,22 +78,12 @@ export default function FileManagementPage() {
     return <LoginForm onLogin={setIsAuthenticated} />;
   }
 
-  // Filter and sort cards - newly uploaded cards first, then by search term
-  const filteredCards = cards
-    .filter(card => 
-      card.thai.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.chinese.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.pronunciation.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      // Sort newly uploaded cards to the top
-      const aIsNew = uploadedCardIds.has(a.id);
-      const bIsNew = uploadedCardIds.has(b.id);
-      
-      if (aIsNew && !bIsNew) return -1;
-      if (!aIsNew && bIsNew) return 1;
-      return 0; // Keep original order for cards of the same type
-    });
+  // Filter cards based on search term
+  const filteredCards = cards.filter(card => 
+    card.thai.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    card.chinese.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    card.pronunciation.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleBatchDownload = async () => {
     const cardsToDownload = selectedCards.size > 0 
@@ -183,9 +155,8 @@ export default function FileManagementPage() {
     try {
       await apiRequest(`/api/cards/${cardId}`, "DELETE");
 
-      // 移除自动刷新，避免页面重载
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       // Remove from selected cards if it was selected
       const newSelected = new Set(selectedCards);
@@ -194,7 +165,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "删除成功",
-        description: "卡片已被删除，请手动刷新页面查看结果",
+        description: "卡片已被删除",
       });
     } catch (error) {
       toast({
@@ -233,9 +204,6 @@ export default function FileManagementPage() {
     try {
       setIsUploading(true);
       
-      // Store current cards count before upload
-      setCardsCountBeforeUpload(cards.length);
-      
       // Read file content and add level to each card
       const fileContent = await selectedFile.text();
       const jsonData = JSON.parse(fileContent);
@@ -264,9 +232,9 @@ export default function FileManagementPage() {
 
       const result = await response.json();
       
-      // 移除自动刷新，避免页面重载
-      // await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // Invalidate cards cache to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       setUploadSuccess(true);
       setSelectedFile(null);
@@ -278,7 +246,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "上传成功",
-        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}，请手动刷新页面查看新卡片`,
+        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}`,
       });
 
       // Store uploaded card count for later reference
@@ -363,9 +331,8 @@ export default function FileManagementPage() {
     try {
       await apiRequest("/api/cards/clear", "DELETE");
 
-      // 移除自动刷新，避免页面重载
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
@@ -403,14 +370,13 @@ export default function FileManagementPage() {
       
       await Promise.all(deletePromises);
 
-      // 移除自动刷新，避免页面重载
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
         title: "批量删除成功",
-        description: `已成功删除 ${selectedCards.size} 张卡片，请手动刷新页面查看结果`,
+        description: `已成功删除 ${selectedCards.size} 张卡片`,
       });
     } catch (error) {
       toast({
@@ -437,12 +403,8 @@ export default function FileManagementPage() {
       return;
     }
 
-    // 开始音频生成 - 阻止意外页面刷新
     setIsGenerating(true);
-    blockReloads();
-    
     try {
-      
       const result = await apiRequest("/api/cards/generate", "POST", {
         cardIds: Array.from(selectedCards)
       }) as { success: boolean; results: any[] };
@@ -450,21 +412,12 @@ export default function FileManagementPage() {
       const successful = result.results.filter(r => r.success).length;
       const failed = result.results.filter(r => !r.success).length;
 
-      // 音频生成完成，绝对不自动刷新页面
+      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      
       toast({
         title: "生成完成",
         description: `成功生成 ${successful} 张卡片的音频和图片${failed > 0 ? `，${failed} 张失败` : ''}`,
-        action: (
-          <Button
-            size="sm"
-            onClick={() => {
-              // 强制刷新页面
-              forceReload();
-            }}
-          >
-            手动刷新
-          </Button>
-        ),
       });
 
       // Clear selection after generation
@@ -479,7 +432,6 @@ export default function FileManagementPage() {
       });
     } finally {
       setIsGenerating(false);
-      unblockReloads();
     }
   };
 
@@ -487,29 +439,15 @@ export default function FileManagementPage() {
     <div className="max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="text-center mb-12 relative">
-        <div className="absolute top-0 right-0 flex items-center gap-2">
-          <Button
-            onClick={() => {
-              // 强制刷新页面
-              forceReload();
-            }}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <RotateCcw className="w-4 h-4" />
-            手动刷新
-          </Button>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            退出登录
-          </Button>
-        </div>
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          size="sm"
+          className="absolute top-0 right-0 flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          退出登录
+        </Button>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">文件管理</h2>
         <p className="text-lg text-gray-600">上传JSON文件来管理您的泰语学习卡片</p>
       </div>
@@ -695,9 +633,9 @@ export default function FileManagementPage() {
                         onClick={handleSelectUploaded}
                         variant="outline"
                         size="sm"
-                        className="text-xs h-8 bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                        className="text-xs h-8"
                       >
-                        选择新上传卡片 ({uploadedCardIds.size})
+                        选择上传卡片 ({uploadedCardIds.size})
                       </Button>
                     )}
                   </div>
@@ -779,20 +717,8 @@ export default function FileManagementPage() {
 
             {/* Cards List */}
             <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredCards.map((card, index) => {
-                  const isNewlyUploaded = uploadedCardIds.has(card.id);
-                  return (
-                  <div 
-                    key={card.id} 
-                    className={`flex items-center gap-3 p-4 rounded-lg transition-all duration-300 ${
-                      isNewlyUploaded 
-                        ? "bg-emerald-50 border-2 border-emerald-200 shadow-md" 
-                        : "bg-gray-50 border border-transparent"
-                    }`}
-                  >
-                    {isNewlyUploaded && (
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    )}
+                {filteredCards.map((card, index) => (
+                  <div key={card.id} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                     <Checkbox
                       id={`card-${card.id}`}
                       checked={selectedCards.has(card.id)}
@@ -803,11 +729,6 @@ export default function FileManagementPage() {
                         <span className="text-2xl" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.thai}</span>
                         <span className="text-gray-600">{card.chinese}</span>
                         <span className="text-sm text-gray-500">({card.pronunciation})</span>
-                        {isNewlyUploaded && (
-                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                            新上传
-                          </span>
-                        )}
                       </div>
                       {card.example && (
                         <p className="text-sm text-gray-500 mt-1" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>{card.example}</p>
@@ -832,8 +753,7 @@ export default function FileManagementPage() {
                       </Button>
                     </div>
                   </div>
-                  );
-                })}
+                ))}
             </div>
             </>
           ) : (

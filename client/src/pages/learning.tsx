@@ -30,12 +30,6 @@ export default function LearningPage() {
   const { data: cards = [], isLoading, refetch } = useQuery<Card[]>({
     queryKey: ["/api/cards", level, "random"],
     queryFn: () => fetch(`/api/cards?level=${level}&random=true&limit=10`).then(res => res.json()),
-    staleTime: Infinity, // 永不过期，避免意外刷新
-    gcTime: Infinity, // 永不垃圾回收
-    refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
-    refetchOnMount: false, // 组件挂载时不重新获取
-    refetchOnReconnect: false, // 网络重连时不刷新
-    refetchInterval: false, // 禁用定期刷新
   });
 
   // Load progress when cards are loaded
@@ -76,28 +70,26 @@ export default function LearningPage() {
   // Track if auto-play is in progress to prevent overlapping
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Navigation functions with immediate audio stop
+  // Navigation functions with smooth transitions
   const goToNext = useCallback(() => {
-    if (cards.length > 0) {
+    if (cards.length > 0 && !isAutoPlaying) {
       console.log("⏭️ Going to next card");
-      // Force stop all audio and reset auto-play state
+      // Stop current audio before changing cards
       audioService.stopAllAudio();
-      setIsAutoPlaying(false);
       const nextIndex = (currentIndex + 1) % cards.length;
       setCurrentIndex(nextIndex);
     }
-  }, [currentIndex, cards.length, audioService]);
+  }, [currentIndex, cards.length, audioService, isAutoPlaying]);
 
   const goToPrev = useCallback(() => {
-    if (cards.length > 0) {
+    if (cards.length > 0 && !isAutoPlaying) {
       console.log("⏮️ Going to previous card");
-      // Force stop all audio and reset auto-play state
+      // Stop current audio before changing cards
       audioService.stopAllAudio();
-      setIsAutoPlaying(false);  
       const prevIndex = currentIndex === 0 ? cards.length - 1 : currentIndex - 1;
       setCurrentIndex(prevIndex);
     }
-  }, [currentIndex, cards.length, audioService]);
+  }, [currentIndex, cards.length, audioService, isAutoPlaying]);
 
   // Mark current card as completed
   const markCurrentCardCompleted = useCallback(() => {
@@ -115,7 +107,49 @@ export default function LearningPage() {
 
 
 
-  // Manual audio playback only - NO AUTO-PLAY to prevent issues
+  // Auto-play audio when card changes - restored functionality
+  useEffect(() => {
+    if (cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length && cards[currentIndex] && !isAutoPlaying) {
+      console.log(`🎵 Auto-playing audio for card ${currentIndex + 1}/${cards.length}: ${cards[currentIndex].thai}`);
+      
+      const playSequentialAudio = async () => {
+        setIsAutoPlaying(true);
+        try {
+          const card = cards[currentIndex];
+          
+          // Play word audio first
+          console.log(`🎯 Playing word: ${card.thai}`);
+          await audioService.playAudio(card.thai, "th-TH", card.id);
+          
+          // Play example audio after word
+          if (card.example && card.example.trim()) {
+            console.log(`🎯 Playing example: ${card.example}`);
+            await audioService.playAudio(card.example, "th-TH", card.id);
+          }
+        } catch (error) {
+          console.error("Auto-play failed:", error);
+        } finally {
+          setIsAutoPlaying(false);
+        }
+      };
+      
+      // Only auto-play on card changes, not on initial load
+      const isInitialLoad = currentIndex === 0 && !document.querySelector('[data-audio-played]');
+      
+      if (!isInitialLoad) {
+        // Short delay for smooth transitions
+        const timeoutId = setTimeout(playSequentialAudio, 100);
+        return () => clearTimeout(timeoutId);
+      }
+      
+      // Mark that audio system is ready
+      if (!document.querySelector('[data-audio-played]')) {
+        document.body.setAttribute('data-audio-played', 'true');
+      }
+    }
+  }, [currentIndex, cards, audioService, isAutoPlaying]);
+
+  // Manual audio playback function for button
   const playCardAudio = useCallback(async () => {
     if (cards.length > 0 && currentIndex >= 0 && currentIndex < cards.length && cards[currentIndex] && !isAutoPlaying) {
       const card = cards[currentIndex];
@@ -143,14 +177,23 @@ export default function LearningPage() {
     }
   }, [cards, currentIndex, isAutoPlaying, audioService]);
 
-  // Auto page turn functionality - 完全禁用以防止刷新
+  // Auto page turn functionality - disabled to prevent audio issues
   useEffect(() => {
-    // 完全禁用自动翻页功能，避免触发页面刷新
-    if (autoPageInterval) {
+    if (autoPageTurn && cards.length > 0) {
+      const interval = setInterval(() => {
+        // Stop audio before auto page turn
+        audioService.stopAllAudio();
+        setIsAutoPlaying(false);
+        goToNext();
+      }, 8000); // Turn page every 8 seconds
+      
+      setAutoPageInterval(interval);
+      return () => clearInterval(interval);
+    } else if (autoPageInterval) {
       clearInterval(autoPageInterval);
       setAutoPageInterval(null);
     }
-  }, []); // 空依赖数组，只在组件挂载时执行一次
+  }, [autoPageTurn, goToNext, cards.length, audioService]);
 
   // Clean up interval on unmount
   useEffect(() => {

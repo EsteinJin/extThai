@@ -1,0 +1,43 @@
+
+      <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <style>
+            .thai-text { font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; }
+            .main-text { font-size: 64px; font-weight: bold; fill: #1f2937; text-anchor: middle; }
+            .pronunciation { font-size: 24px; font-style: italic; fill: #6b7280; text-anchor: middle; }
+            .chinese-text { font-size: 36px; font-weight: bold; fill: #1f2937; text-anchor: middle; }
+            .example-bg { fill: #fef3c7; stroke: #f59e0b; stroke-width: 4; }
+            .example-title { font-size: 20px; font-weight: bold; fill: #92400e; }
+            .example-text { font-size: 28px; font-weight: bold; fill: #78350f; text-anchor: middle; }
+            .example-translation { font-size: 24px; fill: #92400e; text-anchor: middle; }
+          </style>
+        </defs>
+        
+        <!-- Background -->
+        <rect width="800" height="600" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+        
+        <!-- Thai word -->
+        <text x="400" y="150" class="thai-text main-text">ตะปู</text>
+        
+        <!-- Pronunciation -->
+        <text x="400" y="190" class="pronunciation">tà-bpuu</text>
+        
+        <!-- Divider -->
+        <line x1="100" y1="220" x2="700" y2="220" stroke="#d1d5db" stroke-width="1"/>
+        
+        <!-- Chinese translation -->
+        <text x="400" y="280" class="chinese-text">钉子</text>
+        
+        <!-- Example section background -->
+        <rect x="60" y="320" width="680" height="220" class="example-bg"/>
+        
+        <!-- Example label -->
+        <text x="80" y="350" class="example-title">例句 Example:</text>
+        
+        <!-- Example text -->
+        <text x="400" y="390" class="thai-text example-text">พ่อใช้ตะปูตอกกรอบรูปให้แม่</text>
+        
+        <!-- Example translation -->
+        <text x="400" y="450" class="example-translation">爸爸用钉子把相框钉好送给妈妈</text>
+      </svg>
+    
