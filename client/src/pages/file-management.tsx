@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LoginForm } from "@/components/login-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { stableCacheManager } from "@/lib/stable-cache";
+import { antiRefreshManager } from "@/lib/anti-refresh";
 
 export default function FileManagementPage() {
   const { toast } = useToast();
@@ -47,6 +48,7 @@ export default function FileManagementPage() {
     refetchOnReconnect: false, // 网络重连时不刷新
     refetchInterval: false, // 禁用定期刷新
     notifyOnChangeProps: [], // 禁用所有状态变化通知，防止重新渲染
+    networkMode: 'offlineFirst', // 离线优先，减少网络触发的刷新
   });
 
   // Store uploaded card IDs for later selection
@@ -433,7 +435,8 @@ export default function FileManagementPage() {
       return;
     }
 
-    // 添加刷新阻塞器，防止音频生成过程中页面刷新
+    // 强制锁定页面，防止音频生成过程中页面刷新
+    antiRefreshManager.lock();
     stableCacheManager.addRefreshBlocker("audio-generation");
     setIsGenerating(true);
     
@@ -478,9 +481,9 @@ export default function FileManagementPage() {
       });
     } finally {
       setIsGenerating(false);
-      // 移除刷新阻塞器
+      // 移除刷新阻塞器和页面锁定
       stableCacheManager.removeRefreshBlocker("audio-generation");
-      console.log("🔓 音频生成完成，页面解锁");
+      antiRefreshManager.unlock();
     }
   };
 

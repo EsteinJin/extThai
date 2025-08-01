@@ -143,23 +143,14 @@ export default function LearningPage() {
     }
   }, [cards, currentIndex, isAutoPlaying, audioService]);
 
-  // Auto page turn functionality - disabled to prevent audio issues
+  // Auto page turn functionality - 完全禁用以防止刷新
   useEffect(() => {
-    if (autoPageTurn && cards.length > 0) {
-      const interval = setInterval(() => {
-        // Stop audio before auto page turn
-        audioService.stopAllAudio();
-        setIsAutoPlaying(false);
-        goToNext();
-      }, 8000); // Turn page every 8 seconds
-      
-      setAutoPageInterval(interval);
-      return () => clearInterval(interval);
-    } else if (autoPageInterval) {
+    // 完全禁用自动翻页功能，避免触发页面刷新
+    if (autoPageInterval) {
       clearInterval(autoPageInterval);
       setAutoPageInterval(null);
     }
-  }, [autoPageTurn, goToNext, cards.length, audioService]);
+  }, []); // 空依赖数组，只在组件挂载时执行一次
 
   // Clean up interval on unmount
   useEffect(() => {

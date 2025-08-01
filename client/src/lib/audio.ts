@@ -25,35 +25,29 @@ export class AudioService {
   }
 
   stopAllAudio(): void {
-    console.log("🛑 Stopping all audio");
-    
-    // Stop current audio immediately
-    if (this.currentAudio) {
-      try {
+    // 静默停止音频，避免触发页面刷新
+    try {
+      if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
-        this.currentAudio.src = '';
         this.currentAudio = null;
-      } catch (e) {
-        // Ignore errors when stopping audio
       }
-    }
-    
-    // Clear any cached audio elements that may be playing
-    this.htmlAudioCache.forEach(audio => {
-      try {
-        if (!audio.paused) {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.src = '';
+      
+      this.htmlAudioCache.forEach(audio => {
+        try {
+          if (!audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+        } catch (e) {
+          // 静默忽略错误
         }
-      } catch (e) {
-        // Ignore errors when stopping cached audio
-      }
-    });
-    
-    // Clear cache completely
-    this.htmlAudioCache.clear();
+      });
+      
+      this.htmlAudioCache.clear();
+    } catch (error) {
+      // 完全静默，不输出任何日志，避免触发刷新
+    }
   }
 
   async playAudio(text: string, language: string = "th-TH", cardId?: number): Promise<void> {

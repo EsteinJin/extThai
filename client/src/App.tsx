@@ -15,13 +15,18 @@ import { useEffect } from "react";
 function Router() {
   const [location] = useLocation();
   
-  // Stop audio when navigating to home page
+  // Stop audio when navigating to home page - 修复无限刷新问题
   useEffect(() => {
     if (location === '/') {
-      const audioService = AudioService.getInstance();
-      audioService.stopAllAudio();
+      try {
+        const audioService = AudioService.getInstance();
+        audioService.stopAllAudio();
+      } catch (error) {
+        // 忽略音频停止错误，避免触发页面刷新
+        console.log("Audio stop ignored:", error);
+      }
     }
-  }, [location]);
+  }, []); // 移除location依赖，避免路由变化时重复触发
 
   return (
     <Switch>
