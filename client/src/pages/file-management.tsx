@@ -770,7 +770,9 @@ export default function FileManagementPage() {
                     className={`flex items-center gap-3 p-4 rounded-lg transition-all duration-300 ${
                       isNewlyUploaded 
                         ? "bg-emerald-50 border-2 border-emerald-200 shadow-md" 
-                        : "bg-gray-50 border border-transparent"
+                        : card.word_audio && card.example_audio
+                          ? "bg-blue-50 border-2 border-blue-200 shadow-sm"
+                          : "bg-gray-50 border border-transparent"
                     }`}
                   >
                     {isNewlyUploaded && (
@@ -789,6 +791,11 @@ export default function FileManagementPage() {
                         {isNewlyUploaded && (
                           <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
                             新上传
+                          </span>
+                        )}
+                        {card.word_audio && card.example_audio && !isNewlyUploaded && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                            已生成音频
                           </span>
                         )}
                       </div>

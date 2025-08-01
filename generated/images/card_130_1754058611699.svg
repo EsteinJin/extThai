@@ -17,16 +17,16 @@
         <rect width="800" height="600" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
         
         <!-- Thai word -->
-        <text x="400" y="150" class="thai-text main-text">กลืน</text>
+        <text x="400" y="150" class="thai-text main-text">ตา</text>
         
         <!-- Pronunciation -->
-        <text x="400" y="190" class="pronunciation">klʉʉn</text>
+        <text x="400" y="190" class="pronunciation">dtaa</text>
         
         <!-- Divider -->
         <line x1="100" y1="220" x2="700" y2="220" stroke="#d1d5db" stroke-width="1"/>
         
         <!-- Chinese translation -->
-        <text x="400" y="280" class="chinese-text">吞、咽</text>
+        <text x="400" y="280" class="chinese-text">眼睛、外祖父(外公)</text>
         
         <!-- Example section background -->
         <rect x="60" y="320" width="680" height="220" class="example-bg"/>
@@ -35,9 +35,9 @@
         <text x="80" y="350" class="example-title">例句 Example:</text>
         
         <!-- Example text -->
-        <text x="400" y="390" class="thai-text example-text">เด็กเล็กต้องระวังเวลากลืนอาหาร</text>
+        <text x="400" y="390" class="thai-text example-text">ตอนเย็นตาชอบนั่งดูข่าวทีวีหน้าบ้าน</text>
         
         <!-- Example translation -->
-        <text x="400" y="450" class="example-translation">小孩吃东西时要小心吞咽</text>
+        <text x="400" y="450" class="example-translation">傍晚外公喜欢坐在家门口看电视新闻</text>
       </svg>
     
