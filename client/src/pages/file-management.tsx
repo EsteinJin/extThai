@@ -458,10 +458,8 @@ export default function FileManagementPage() {
           <Button
             size="sm"
             onClick={() => {
-              // 用户手动选择刷新时才更新数据
-              queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-              toast({ title: "数据已更新" });
+              // 完全重新加载页面
+              window.location.reload();
             }}
           >
             手动刷新
@@ -494,13 +492,8 @@ export default function FileManagementPage() {
         <div className="absolute top-0 right-0 flex items-center gap-2">
           <Button
             onClick={() => {
-              // 手动刷新按钮 - 用户主动触发
-              queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel, "management"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-              toast({
-                title: "刷新完成",
-                description: "数据已更新"
-              });
+              // 手动刷新 - 完全重新加载页面而不是使用React Query
+              window.location.reload();
             }}
             variant="outline"
             size="sm"
