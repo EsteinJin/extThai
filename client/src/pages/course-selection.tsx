@@ -46,10 +46,16 @@ const courses = [
 ];
 
 export default function CourseSelectionPage() {
-  // Get cards data to calculate progress
+  // Get cards data to calculate progress with stable caching to prevent auto-refresh
   const { data: allCards = [] } = useQuery<CardType[]>({
     queryKey: ["/api/cards"],
     queryFn: () => fetch("/api/cards").then(res => res.json()),
+    staleTime: Infinity, // 永不过期，避免意外刷新
+    gcTime: Infinity, // 永不垃圾回收
+    refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
+    refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Get progress for each level
@@ -124,13 +130,23 @@ export default function CourseSelectionPage() {
                     </div>
                   )}
                   
-                  <Link href={`/learning/${course.level}`}>
-                    <Button 
-                      className={`w-full ${course.color} hover:opacity-90 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 text-lg shadow-lg hover:shadow-xl`}
-                    >
-                      {progress.hasProgress ? "继续学习" : "开始学习"}
-                    </Button>
-                  </Link>
+                  <div className="flex gap-3">
+                    <Link href={`/cards/${course.level}`} className="flex-1">
+                      <Button 
+                        variant="outline"
+                        className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-xl transition-all duration-300 text-base shadow-sm hover:shadow-md"
+                      >
+                        浏览卡片
+                      </Button>
+                    </Link>
+                    <Link href={`/learning/${course.level}`} className="flex-1">
+                      <Button 
+                        className={`w-full ${course.color} hover:opacity-90 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 text-base shadow-lg hover:shadow-xl`}
+                      >
+                        {progress.hasProgress ? "继续学习" : "开始学习"}
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             );

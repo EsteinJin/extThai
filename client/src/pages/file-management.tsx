@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2 } from "lucide-react";
+import { CloudUpload, Info, Download, ArrowLeft, FileText, CheckCircle, Search, Edit, Trash2, LogOut, Wand2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoginForm } from "@/components/login-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { blockReloads, unblockReloads, forceReload } from "@/lib/prevent-reload";
 
 export default function FileManagementPage() {
   const { toast } = useToast();
@@ -37,8 +38,16 @@ export default function FileManagementPage() {
   // Always call hooks first, before any conditional returns
   const { data: cards = [] } = useQuery<CardType[]>({
     queryKey: ["/api/cards", selectedLevel, "management"],
-    queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()), // No random parameter for management
-    enabled: isAuthenticated, // Only fetch when authenticated
+    queryFn: () => fetch(`/api/cards?level=${selectedLevel}`).then(res => res.json()),
+    enabled: isAuthenticated,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, 
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    notifyOnChangeProps: [],
+    networkMode: 'always', // 使用always模式确保稳定性
   });
 
   // Store uploaded card IDs for later selection
@@ -47,20 +56,23 @@ export default function FileManagementPage() {
   // Track cards count before upload to identify newly uploaded cards
   const [cardsCountBeforeUpload, setCardsCountBeforeUpload] = useState(0);
 
-  // Auto-select only newly uploaded cards
+  // 简化自动选择逻辑，避免复杂的useEffect依赖
   useEffect(() => {
-    if (cards.length > 0 && uploadSuccess && cardsCountBeforeUpload >= 0) {
-      // Only select cards that were added after the previous count
-      const newlyUploadedCards = cards.slice(cardsCountBeforeUpload);
-      const newCardIds = new Set(newlyUploadedCards.map(card => card.id));
-      setUploadedCardIds(newCardIds);
-      setSelectedCards(newCardIds);
-      // Reset upload success flag after auto-selection
-      setTimeout(() => setUploadSuccess(false), 1000);
-      // Clear highlight after 10 seconds
-      setTimeout(() => setUploadedCardIds(new Set()), 10000);
+    if (uploadSuccess) {
+      // 延迟执行以确保数据已更新
+      const timer = setTimeout(() => {
+        if (cards.length > cardsCountBeforeUpload) {
+          const newlyUploadedCards = cards.slice(cardsCountBeforeUpload);
+          const newCardIds = new Set(newlyUploadedCards.map(card => card.id));
+          setUploadedCardIds(newCardIds);
+          setSelectedCards(newCardIds);
+        }
+        setUploadSuccess(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [cards, uploadSuccess, cardsCountBeforeUpload]);
+  }, [uploadSuccess]);
 
 
 
@@ -171,8 +183,9 @@ export default function FileManagementPage() {
     try {
       await apiRequest(`/api/cards/${cardId}`, "DELETE");
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       // Remove from selected cards if it was selected
       const newSelected = new Set(selectedCards);
@@ -181,7 +194,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "删除成功",
-        description: "卡片已被删除",
+        description: "卡片已被删除，请手动刷新页面查看结果",
       });
     } catch (error) {
       toast({
@@ -251,9 +264,9 @@ export default function FileManagementPage() {
 
       const result = await response.json();
       
-      // Invalidate cards cache to refresh the data
-      await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // await queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       
       setUploadSuccess(true);
       setSelectedFile(null);
@@ -265,7 +278,7 @@ export default function FileManagementPage() {
       
       toast({
         title: "上传成功",
-        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}`,
+        description: `已成功导入 ${result.count} 张学习卡片到基础泰语${uploadLevel}，请手动刷新页面查看新卡片`,
       });
 
       // Store uploaded card count for later reference
@@ -350,8 +363,9 @@ export default function FileManagementPage() {
     try {
       await apiRequest("/api/cards/clear", "DELETE");
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
@@ -389,13 +403,14 @@ export default function FileManagementPage() {
       
       await Promise.all(deletePromises);
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // 移除自动刷新，避免页面重载
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
+      // queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
       setSelectedCards(new Set()); // Clear selection
       
       toast({
         title: "批量删除成功",
-        description: `已成功删除 ${selectedCards.size} 张卡片`,
+        description: `已成功删除 ${selectedCards.size} 张卡片，请手动刷新页面查看结果`,
       });
     } catch (error) {
       toast({
@@ -422,8 +437,12 @@ export default function FileManagementPage() {
       return;
     }
 
+    // 开始音频生成 - 阻止意外页面刷新
     setIsGenerating(true);
+    blockReloads();
+    
     try {
+      
       const result = await apiRequest("/api/cards/generate", "POST", {
         cardIds: Array.from(selectedCards)
       }) as { success: boolean; results: any[] };
@@ -431,12 +450,21 @@ export default function FileManagementPage() {
       const successful = result.results.filter(r => r.success).length;
       const failed = result.results.filter(r => !r.success).length;
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cards", selectedLevel] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-      
+      // 音频生成完成，绝对不自动刷新页面
       toast({
         title: "生成完成",
         description: `成功生成 ${successful} 张卡片的音频和图片${failed > 0 ? `，${failed} 张失败` : ''}`,
+        action: (
+          <Button
+            size="sm"
+            onClick={() => {
+              // 强制刷新页面
+              forceReload();
+            }}
+          >
+            手动刷新
+          </Button>
+        ),
       });
 
       // Clear selection after generation
@@ -451,6 +479,7 @@ export default function FileManagementPage() {
       });
     } finally {
       setIsGenerating(false);
+      unblockReloads();
     }
   };
 
@@ -458,15 +487,29 @@ export default function FileManagementPage() {
     <div className="max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="text-center mb-12 relative">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          size="sm"
-          className="absolute top-0 right-0 flex items-center gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          退出登录
-        </Button>
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          <Button
+            onClick={() => {
+              // 强制刷新页面
+              forceReload();
+            }}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            手动刷新
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            退出登录
+          </Button>
+        </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">文件管理</h2>
         <p className="text-lg text-gray-600">上传JSON文件来管理您的泰语学习卡片</p>
       </div>

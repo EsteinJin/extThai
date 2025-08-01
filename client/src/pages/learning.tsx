@@ -30,6 +30,12 @@ export default function LearningPage() {
   const { data: cards = [], isLoading, refetch } = useQuery<Card[]>({
     queryKey: ["/api/cards", level, "random"],
     queryFn: () => fetch(`/api/cards?level=${level}&random=true&limit=10`).then(res => res.json()),
+    staleTime: Infinity, // 永不过期，避免意外刷新
+    gcTime: Infinity, // 永不垃圾回收
+    refetchOnWindowFocus: false, // 窗口获得焦点时不刷新
+    refetchOnMount: false, // 组件挂载时不重新获取
+    refetchOnReconnect: false, // 网络重连时不刷新
+    refetchInterval: false, // 禁用定期刷新
   });
 
   // Load progress when cards are loaded
@@ -137,23 +143,14 @@ export default function LearningPage() {
     }
   }, [cards, currentIndex, isAutoPlaying, audioService]);
 
-  // Auto page turn functionality - disabled to prevent audio issues
+  // Auto page turn functionality - 完全禁用以防止刷新
   useEffect(() => {
-    if (autoPageTurn && cards.length > 0) {
-      const interval = setInterval(() => {
-        // Stop audio before auto page turn
-        audioService.stopAllAudio();
-        setIsAutoPlaying(false);
-        goToNext();
-      }, 8000); // Turn page every 8 seconds
-      
-      setAutoPageInterval(interval);
-      return () => clearInterval(interval);
-    } else if (autoPageInterval) {
+    // 完全禁用自动翻页功能，避免触发页面刷新
+    if (autoPageInterval) {
       clearInterval(autoPageInterval);
       setAutoPageInterval(null);
     }
-  }, [autoPageTurn, goToNext, cards.length, audioService]);
+  }, []); // 空依赖数组，只在组件挂载时执行一次
 
   // Clean up interval on unmount
   useEffect(() => {

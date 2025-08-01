@@ -53,11 +53,17 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
       staleTime: Infinity,
+      gcTime: Infinity,
       retry: false,
+      notifyOnChangeProps: [], // 全局禁用状态变化通知
+      networkMode: 'always', // 改为always模式，确保稳定性
     },
     mutations: {
       retry: false,
+      networkMode: 'always', // 变更也使用always模式
     },
   },
 });
